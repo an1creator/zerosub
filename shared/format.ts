@@ -6,16 +6,16 @@ export function formatResetIn(resetsAt: string | null, now: number = Date.now())
   const at = Date.parse(resetsAt);
   if (!Number.isFinite(at)) return null;
   const minutes = Math.round((at - now) / 60_000);
-  if (minutes <= 0) return "now";
-  if (minutes < 60) return `in ${minutes}m`;
+  if (minutes <= 0) return "сейчас";
+  if (minutes < 60) return `через ${minutes} мин`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
     const rest = minutes % 60;
-    return rest === 0 ? `in ${hours}h` : `in ${hours}h ${rest}m`;
+    return rest === 0 ? `через ${hours} ч` : `через ${hours} ч ${rest} мин`;
   }
   const days = Math.floor(hours / 24);
   const restHours = hours % 24;
-  return restHours === 0 ? `in ${days}d` : `in ${days}d ${restHours}h`;
+  return restHours === 0 ? `через ${days} д` : `через ${days} д ${restHours} ч`;
 }
 
 export function formatPercent(value: number): string {
@@ -63,7 +63,7 @@ export function shortLabel(account: Pick<AccountView, "label">, max = 18): strin
   return label.length <= max ? label : `${label.slice(0, max - 1)}…`;
 }
 
-/** One line summarising an account's headroom, e.g. "42% of 5-hour used · resets in 2h". */
+/** One line summarising an account's headroom, e.g. "42% of 5-hour used · сброс in 2h". */
 /**
  * The line under an account's name: its email, plus its organization when that adds something.
  * Claude names a personal organization after its owner ("…'s Organization"), which only repeats it.
@@ -80,21 +80,27 @@ export function accountSubtitle(account: Pick<AccountView, "email" | "organizati
 /** "just now", "6m ago", "3h ago", "2d ago". */
 export function formatAge(at: string, now: number = Date.now()): string {
   const minutes = Math.floor((now - Date.parse(at)) / 60_000);
-  if (!Number.isFinite(minutes) || minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
+  if (!Number.isFinite(minutes) || minutes < 1) return "только что";
+  if (minutes < 60) return `${minutes} мин назад`;
   const hours = Math.round(minutes / 60);
-  return hours < 48 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
+  return hours < 48 ? `${hours} ч назад` : `${Math.round(hours / 24)} д назад`;
 }
 
 export function usageSummary(account: AccountView, now: number = Date.now()): string | null {
-  if (account.status === "disabled") return "Disabled for now";
+  if (account.status === "disabled") return "Временно отключён";
   if (account.status === "limited") {
     const reset = formatResetIn(account.limitedUntil, now);
-    return reset ? `Limit reached · resets ${reset}` : "Limit reached";
+    return reset ? `Лимит исчерпан · сброс ${reset}` : "Лимит исчерпан";
   }
   const peak = account.usage ? peakUsage(account.usage.windows) : null;
   if (!peak) return null;
   const reset = formatResetIn(peak.resetsAt, now);
-  const base = `${formatPercent(peak.usedPercent)} of ${peak.label.toLowerCase()} used`;
-  return reset ? `${base} · resets ${reset}` : base;
+  const base = `Использовано ${formatPercent(peak.usedPercent)} · ${usageLabel(peak.label)}`;
+  return reset ? `${base} · сброс ${reset}` : base;
+}
+
+export function usageLabel(value: string): string {
+  if (/^weekly$/i.test(value)) return "Неделя";
+  if (/^usage$/i.test(value)) return "Использование";
+  return value.replace(/(\d+)-hour/gi, "$1 ч").replace(/(\d+)-day/gi, "$1 д").replace(/(\d+)-minute/gi, "$1 мин").replace(/weekly/gi, "за неделю");
 }

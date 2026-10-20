@@ -1,3 +1,4 @@
+import { usageLabel } from "../shared/format";
 import type { PluginHostProps } from "@getpaseo/plugin/client";
 import { Icon } from "@getpaseo/plugin/client/react-native";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -265,15 +266,15 @@ export function UsageBar({ theme, limit }: { theme: Theme; limit: UsageWindow })
   return (
     <View style={{ gap: 4 }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", columnGap: 8 }}>
-        <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{limit.label}</Text>
+        <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{usageLabel(limit.label)}</Text>
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
-          <Text style={{ color: colors.foreground, fontWeight: "600" }}>{formatPercent(percent)}</Text> used
-          {reset ? ` · resets ${reset}` : ""}
+          <Text style={{ color: colors.foreground, fontWeight: "600" }}>{formatPercent(percent)}</Text> использовано
+          {reset ? ` · сброс ${reset}` : ""}
         </Text>
       </View>
       <View
         accessibilityRole="progressbar"
-        accessibilityLabel={`${limit.label} usage`}
+        accessibilityLabel={`${usageLabel(limit.label)} usage`}
         accessibilityValue={{ min: 0, max: 100, now: Math.round(percent) }}
         style={{ height: 6, borderRadius: 3, backgroundColor: colors.surface2, overflow: "hidden" }}
       >

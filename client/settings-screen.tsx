@@ -16,14 +16,14 @@ export function PreferencesScreen({ theme, host, onOpenAccounts }: PluginSurface
   const multiHost = useHosts().length > 1;
   const [prompt, setPrompt] = useState<string | null>(null);
   const muted = { color: theme.colors.foregroundMuted };
-  if (settings.status === "loading") return <Text style={muted}>Loading…</Text>;
+  if (settings.status === "loading") return <Text style={muted}>Загрузка…</Text>;
   if (settings.status !== "ready") {
     return (
-      <SettingsSection title="Preferences">
+      <SettingsSection title="Настройки">
         <Text style={{ color: theme.colors.statusDanger }}>{settings.error}</Text>
-        <SettingsAction label="Try again" actionLabel="Reload" onPress={() => void settings.reload()} />
+        <SettingsAction label="Повторить" actionLabel="Обновить" onPress={() => void settings.reload()} />
         {settings.status === "invalid" ? (
-          <SettingsAction label="Restore defaults" actionLabel="Reset" onPress={() => void settings.reset()} />
+          <SettingsAction label="Вернуть настройки по умолчанию" actionLabel="Сбросить" onPress={() => void settings.reset()} />
         ) : null}
       </SettingsSection>
     );
@@ -33,89 +33,89 @@ export function PreferencesScreen({ theme, host, onOpenAccounts }: PluginSurface
   return (
     <>
       {multiHost ? (
-        <Text style={muted}>These apply to agents on {host.label}. Each host keeps its own accounts and preferences.</Text>
+        <Text style={muted}>Настройки для агентов на {host.label}. У каждого хоста свои аккаунты и настройки.</Text>
       ) : null}
-      <SettingsSection title="Accounts">
+      <SettingsSection title="Аккаунты">
         <SettingsCard>
           <SettingsAction
-            label="Add, remove, and choose default accounts"
-            actionLabel="Open accounts"
+            label="Добавление, удаление и выбор основного аккаунта"
+            actionLabel="Открыть аккаунты"
             onPress={onOpenAccounts}
           />
           <SettingsSwitch
-            label="Move open agents when the default changes"
-            hint="Off: open agents stay on the account they're using, even after they reopen. New agents, and agents that aren't open at the time, use the new default."
+            label="Переключать открытых агентов при смене аккаунта по умолчанию"
+            hint="Если выключено, открытые агенты сохраняют свой аккаунт. Новые и закрытые сессии используют новый аккаунт по умолчанию."
             value={settings.values.moveAgentsOnDefaultChange}
             disabled={settings.saving}
             onValueChange={(moveAgentsOnDefaultChange) => save({ moveAgentsOnDefaultChange })}
           />
         </SettingsCard>
       </SettingsSection>
-      <SettingsSection title="Automatic switching">
+      <SettingsSection title="Автоматическое переключение">
         <SettingsCard>
           <SettingsSwitch
-            label="Switch accounts when one hits its limit"
-            hint="The agent moves to the account with the most room left."
+            label="Переключать при исчерпании лимита"
+            hint="Агент переходит на аккаунт с наибольшим остатком лимита."
             value={settings.values.autoSwitch}
             disabled={settings.saving}
             onValueChange={(autoSwitch) => save({ autoSwitch })}
           />
           <SettingsSwitch
-            label="Keep going after a switch"
-            hint="Sends the follow-up below so the interrupted task continues."
+            label="Продолжать после переключения"
+            hint="Отправляет указанное ниже сообщение для продолжения задачи."
             value={settings.values.autoContinue}
             disabled={settings.saving || !settings.values.autoSwitch}
             onValueChange={(autoContinue) => save({ autoContinue })}
           />
           <SettingsInput
-            label="Follow-up message"
+            label="Сообщение для продолжения"
             initialValue={settings.values.continuePrompt}
             onChangeText={setPrompt}
             disabled={settings.saving || !settings.values.autoContinue}
             error={settings.saveError}
           />
           <SettingsAction
-            label="Save the follow-up message"
-            actionLabel="Save"
+            label="Сохранить сообщение для продолжения"
+            actionLabel="Сохранить"
             disabled={settings.saving || prompt === null || !prompt.trim()}
             onPress={() => {
               if (prompt?.trim()) save({ continuePrompt: prompt.trim() });
             }}
           />
           <SettingsAction
-            label="Restore the default follow-up"
-            actionLabel="Restore"
+            label="Вернуть стандартное сообщение"
+            actionLabel="Восстановить"
             disabled={settings.saving || settings.values.continuePrompt === DEFAULT_CONTINUE_PROMPT}
             onPress={() => save({ continuePrompt: DEFAULT_CONTINUE_PROMPT })}
           />
         </SettingsCard>
       </SettingsSection>
-      <SettingsSection title="New agents and composer">
+      <SettingsSection title="Новые агенты и поле ввода">
         <SettingsCard>
           <SettingsSwitch
-            label="Spread new agents across accounts"
-            hint="New agents start on the account with the most room instead of the default."
+            label="Распределять новых агентов по аккаунтам"
+            hint="Новый агент выбирает аккаунт с наибольшим остатком лимита."
             value={settings.values.balanceNewAgents}
             disabled={settings.saving}
             onValueChange={(balanceNewAgents) => save({ balanceNewAgents })}
           />
           <SettingsSwitch
-            label="Use banked resets when every account is out"
-            hint="Spends one of the account's banked resets instead of stopping. Off unless you turn it on: resets are scarce."
+            label="Использовать запасные сбросы, когда лимиты исчерпаны везде"
+            hint="Автоматически тратит запасной сброс вместо остановки. По умолчанию выключено."
             value={settings.values.autoRedeem}
             disabled={settings.saving || !settings.values.autoSwitch}
             onValueChange={(autoRedeem) => save({ autoRedeem })}
           />
           <SettingsSwitch
-            label="When every account is out, fork the chat to the other provider"
-            hint="A stopped Claude chat carries on in a new ChatGPT agent, or the other way round, with the conversation so far and no more permissions than the original. The original stays as it was."
+            label="Продолжать у другого провайдера при исчерпании всех лимитов"
+            hint="Создаёт продолжение разговора в ChatGPT вместо Claude или наоборот. Права нового агента не расширяются; исходный чат сохраняется."
             value={settings.values.forkOtherProvider}
             disabled={settings.saving || !settings.values.autoSwitch}
             onValueChange={(forkOtherProvider) => save({ forkOtherProvider })}
           />
           <SettingsSwitch
-            label="Show the account pill in the composer"
-            hint="Appears on Claude and Codex agents once a provider has two or more accounts."
+            label="Показывать кнопку аккаунта в поле ввода"
+            hint="Появляется у агентов Claude и Codex, когда добавлено два аккаунта или больше."
             value={settings.values.showComposerPill}
             disabled={settings.saving}
             onValueChange={(showComposerPill) => save({ showComposerPill })}

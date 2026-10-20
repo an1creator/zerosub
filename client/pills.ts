@@ -174,7 +174,7 @@ function buttonFor(
   const items: PluginButtonMenuEntry[] = accounts.map((account, index) => ({
     kind: "item",
     id: `account-${index}`,
-    title: account.id === current.id || movable ? menuTitle(account) : `Continue on ${account.label} (new agent)`,
+    title: account.id === current.id || movable ? menuTitle(account) : `Продолжить в ${account.label} (новый агент)`,
     icon: account.id === current.id ? "CircleCheck" : movable ? "Circle" : "CopyPlus",
     disabled: account.status === "signed_out" || account.status === "disabled" || account.id === current.id,
     behavior: { kind: "action", onPress: choose(account.id) },
@@ -185,7 +185,7 @@ function buttonFor(
     const entry: PluginButtonMenuEntry = {
       kind: "item",
       id: "use-reset",
-      title: `Use a banked reset on ${current.label} (${resets.available} left)…`,
+      title: `Использовать запасной сброс для ${current.label} (осталось: ${resets.available})…`,
       icon: "TimerReset",
       behavior: { kind: "popover", Content: resetPopover(store, current, agent.id) },
     };
@@ -196,7 +196,7 @@ function buttonFor(
     wayOut.push({
       kind: "item",
       id: "fork-other",
-      title: `Continue on ${FAMILY_LABEL[other]} (new agent)…`,
+      title: `Продолжить в ${FAMILY_LABEL[other]} (новый агент)…`,
       icon: "GitFork",
       behavior: { kind: "popover", Content: forkPopover(store, agent.id, family, other) },
     });
@@ -208,7 +208,7 @@ function buttonFor(
     items.push({
       kind: "item",
       id: "follow-default",
-      title: fallback ? `Follow default (${fallback.label})` : "Follow default",
+      title: fallback ? `По умолчанию (${fallback.label})` : "Следовать настройке по умолчанию",
       icon: "Undo2",
       behavior: { kind: "action", onPress: choose(null) },
     });
@@ -216,7 +216,7 @@ function buttonFor(
   items.push({
     kind: "item",
     id: "manage",
-    title: "Manage accounts…",
+    title: "Управление аккаунтами…",
     icon: "Users",
     behavior: {
       kind: "action",
@@ -226,9 +226,9 @@ function buttonFor(
     },
   });
 
-  const pending = route?.pendingAccountId ? " (after this turn)" : "";
+  const pending = route?.pendingAccountId ? "(после текущего ответа)" : "";
   return {
-    title: `Account: ${current.label}${current.email && current.email !== current.label ? ` (${current.email})` : ""}`,
+    title: `Аккаунт: ${current.label}${current.email && current.email !== current.label ? ` (${current.email})` : ""}`,
     icon: current.status === "limited" ? "CircleAlert" : "CircleUserRound",
     label: `${shortLabel(current)}${pending}`,
     behavior: { kind: "menu", items },
@@ -236,11 +236,11 @@ function buttonFor(
 }
 
 function menuTitle(account: AccountView): string {
-  if (account.status === "signed_out") return `${account.label} — signed out`;
-  if (account.status === "disabled") return `${account.label} — disabled`;
-  if (account.status === "limited") return `${account.label} — limit reached`;
+  if (account.status === "signed_out") return `${account.label} — требуется вход`;
+  if (account.status === "disabled") return `${account.label} — отключён`;
+  if (account.status === "limited") return `${account.label} — лимит исчерпан`;
   const peak = account.usage ? peakUsage(account.usage.windows) : null;
-  return peak ? `${account.label} — ${formatPercent(peak.usedPercent)} used` : account.label;
+  return peak ? `${account.label} — использовано ${formatPercent(peak.usedPercent)}` : account.label;
 }
 
 function menuKey(button: PluginButton): string {

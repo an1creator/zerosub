@@ -1,3 +1,4 @@
+import { proxyEnvironment, accountFetch } from "./proxy";
 import { spawn } from "node:child_process";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { readFile, rm } from "node:fs/promises";
@@ -61,10 +62,11 @@ export class ClaudeAdapter implements FamilyAdapter {
   private readonly resetNotes = new Map<string, string>();
 
   async env(home: string | null): Promise<EnvPatch> {
-    if (!home) return { CLAUDE_CONFIG_DIR: null, CLAUDE_SECURESTORAGE_CONFIG_DIR: null };
+    const proxy = await proxyEnvironment("claude", home);
+    if (!home) return { ...proxy, CLAUDE_CONFIG_DIR: null, CLAUDE_SECURESTORAGE_CONFIG_DIR: null };
     // Both point at the home so the keychain entry and refresh locks follow it even when the
     // daemon itself runs with CLAUDE_SECURESTORAGE_CONFIG_DIR set.
-    const patch: EnvPatch = { CLAUDE_CONFIG_DIR: home, CLAUDE_SECURESTORAGE_CONFIG_DIR: home };
+    const patch: EnvPatch = { ...proxy, CLAUDE_CONFIG_DIR: home, CLAUDE_SECURESTORAGE_CONFIG_DIR: home };
     for (const key of OVERRIDING_AUTH) if (process.env[key]) patch[key] = "";
     return patch;
   }
@@ -108,7 +110,7 @@ export class ClaudeAdapter implements FamilyAdapter {
     if (credentials?.accessToken && isFresh(credentials) && profileScope) {
       try {
         // The `cedar_ember` read is the one Claude Code's /limit-reset makes: usage plus banked resets.
-        const response = await fetch(`${API}/api/oauth/usage?cedar_ember=1&skip_spend=1`, {
+        const response = await accountFetch("claude", home, `${API}/api/oauth/usage?cedar_ember=1&skip_spend=1`, {
           headers: apiHeaders(credentials.accessToken),
           signal: AbortSignal.timeout(15_000),
         });
@@ -182,7 +184,7 @@ export class ClaudeAdapter implements FamilyAdapter {
     // Ask which grant is next: the server only accepts that one.
     let status: ReturnType<typeof parseClaudeResets>;
     try {
-      const response = await fetch(`${API}/api/oauth/usage?cedar_ember=1&skip_spend=1`, {
+      const response = await accountFetch("claude", home, `${API}/api/oauth/usage?cedar_ember=1&skip_spend=1`, {
         headers: apiHeaders(token),
         signal: AbortSignal.timeout(15_000),
       });
@@ -207,7 +209,7 @@ export class ClaudeAdapter implements FamilyAdapter {
     const organization = await this.organizationId(home);
     if (!organization) return { outcome: "error", message: "Couldn't tell which Claude organization this account belongs to.", left: null };
     try {
-      const response = await fetch(`${API}/api/organizations/${organization}/reset_rate_limits`, {
+      const response = await accountFetch("claude", home, `${API}/api/organizations/${organization}/reset_rate_limits`, {
         method: "POST",
         headers: apiHeaders(token),
         body: JSON.stringify({ program: CLAUDE_RESET_PROGRAM, grant_id: status.nextGrantId, request_id: randomUUID() }),

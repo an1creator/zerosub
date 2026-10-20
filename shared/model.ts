@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ProxyViewSchema } from "./proxy";
 
 /** The two subscription families this plugin manages. Custom provider profiles map onto one of them. */
 export const FamilySchema = z.enum(["claude", "codex"]);
@@ -73,6 +74,7 @@ export const AccountViewSchema = z.object({
   limitedUntil: z.string().nullable(),
   usage: UsageSchema.nullable(),
   agentCount: z.number(),
+  proxy: ProxyViewSchema.nullable().optional(),
   home: z.string().nullable(),
 });
 export type AccountView = z.infer<typeof AccountViewSchema>;

@@ -1,3 +1,5 @@
+import { localizeMessage } from "../shared/messages";
+import { usageLabel } from "../shared/format";
 import type { PluginButtonContentProps, PluginHostProps } from "@getpaseo/plugin/client";
 import { useToast } from "@getpaseo/plugin/client/react-native";
 import { useCallback, useState, type ComponentType } from "react";
@@ -17,19 +19,19 @@ function formatDay(iso: string | null): string | null {
 
 function list(items: readonly string[]): string {
   if (items.length <= 1) return items[0] ?? "";
-  return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+  return `${items.slice(0, -1).join(", ")} и ${items.at(-1)}`;
 }
 
 /** "2 left · use by Sep 30". */
 export function resetDetail(resets: ResetOffer): string {
   const until = formatDay(resets.expiresAt);
-  return `${resets.available} left${until ? ` · use by ${until}` : ""}`;
+  return `осталось: ${resets.available}${until ? ` · использовать до ${until}` : ""}`;
 }
 
 /** "1 reset · use by Oct 23". */
 export function resetBadge(resets: ResetOffer): string {
   const until = formatDay(resets.expiresAt);
-  return `${resets.available} reset${resets.available === 1 ? "" : "s"}${until ? ` · use by ${until}` : " banked"}`;
+  return `Сбросов: ${resets.available}${until ? ` · использовать до ${until}` : " в запасе"}`;
 }
 
 /**
@@ -72,28 +74,28 @@ export function ResetConfirm({
   if (!resets) {
     return (
       <View style={{ gap: 12 }}>
-        <Text style={text.body}>{account.label} has no banked resets right now.</Text>
-        <Button theme={theme} label="Close" tooltip="Close this window" tooltipAlign="end" onPress={onCancel} />
+        <Text style={text.body}>{account.label} сейчас не имеет запасных сбросов.</Text>
+        <Button theme={theme} label="Закрыть" tooltip="Закрыть окно" tooltipAlign="end" onPress={onCancel} />
       </View>
     );
   }
-  const refills = resets.refills.length > 0 ? `your ${list(resets.refills)} limits` : "your usage limits";
+  const refills = resets.refills.length > 0 ? `лимиты ${list(resets.refills.map(usageLabel))}` : "лимиты использования";
   return (
     <View style={{ gap: 12 }}>
       <Text style={text.body}>
-        Refills {refills} on {account.label} now{agentId ? ", then this agent carries on" : ""}. A reset can't be undone.
+        Восстановит {refills} для {account.label}{agentId ? ", затем агент продолжит работу" : ""}. Сброс нельзя отменить.
       </Text>
       <Text style={text.muted}>{resetDetail(resets)}</Text>
       {resets.blockedReason ? <Text style={text.warning}>{resets.blockedReason}</Text> : null}
       {error ? <Text style={text.danger}>{error}</Text> : null}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
-        <Button theme={theme} label="No, keep it" tooltip="Keep the reset for later" tooltipAlign="end" onPress={onCancel} disabled={busy} />
+        <Button theme={theme} label="Нет, оставить на потом" tooltip="Сохранить сброс на будущее" tooltipAlign="end" onPress={onCancel} disabled={busy} />
         <Button
           theme={theme}
           tone="primary"
           icon="TimerReset"
-          label="Yes, use my reset"
-          tooltip="Spend one banked reset now; it can't be undone"
+          label="Да, использовать сброс"
+          tooltip="Потратить один сброс; отменить нельзя"
           tooltipAlign="end"
           busy={busy}
           disabled={!resets.usableNow}
@@ -111,7 +113,7 @@ export function resetPopover(store: ZeroSubStore, account: AccountView, agentId:
     const text = useText(theme);
     return (
       <View style={{ gap: 12, maxWidth: 360 }}>
-        <Text style={text.heading}>Use a banked reset?</Text>
+        <Text style={text.heading}>Использовать запасной сброс?</Text>
         <ResetConfirm
           theme={theme}
           store={store}
@@ -133,8 +135,8 @@ export function resetPopover(store: ZeroSubStore, account: AccountView, agentId:
 /** Toast wording and tone for a redeem result. */
 export function redeemToast(label: string, result: RedeemResult): { message: string; variant: "success" | "warning" | "error" } {
   if (result.outcome === "reset") {
-    return { message: `${label}: ${result.message}${result.continued ? " The agent is carrying on." : ""}`, variant: "success" };
+    return { message: `${label}: ${localizeMessage(result.message)}${result.continued ? "Агент продолжает работу." : ""}`, variant: "success" };
   }
-  if (result.outcome === "error") return { message: result.message, variant: "error" };
-  return { message: result.message, variant: "warning" };
+  if (result.outcome === "error") return { message: localizeMessage(result.message), variant: "error" };
+  return { message: localizeMessage(result.message), variant: "warning" };
 }

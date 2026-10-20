@@ -1,5 +1,6 @@
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
+import { ProxyInputSchema } from "./proxy";
 import { FamilySchema, LoginMethodSchema, LoginViewSchema, StateViewSchema } from "./model";
 
 export const getState = defineRpc({
@@ -15,6 +16,7 @@ export const startLogin = defineRpc({
     /** Sign an existing account back in instead of adding a new one. */
     accountId: z.string().optional(),
     method: LoginMethodSchema.default("browser"),
+    proxy: ProxyInputSchema.nullable().optional(),
   }),
   output: LoginViewSchema,
 });
@@ -127,4 +129,15 @@ export const setAgentAccount = defineRpc({
     accountId: z.string().nullable(),
   }),
   output: ReopenSummarySchema,
+});
+
+export const setAccountProxy = defineRpc({
+  name: "zerosub.accounts.proxy",
+  input: z.object({ accountId: z.string(), proxy: ProxyInputSchema.nullable() }),
+  output: z.object({ ok: z.literal(true) }),
+});
+export const checkProxy = defineRpc({
+  name: "zerosub.proxy.check",
+  input: z.object({ family: FamilySchema, accountId: z.string().optional(), proxy: ProxyInputSchema }),
+  output: z.object({ ok: z.boolean(), message: z.string() }),
 });

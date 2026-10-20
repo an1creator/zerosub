@@ -25,7 +25,7 @@ export function forkPopover(store: ZeroSubStore, agentId: string, from: Family, 
       try {
         const fork = await store.rpc(forkAgent, { agentId });
         close();
-        toast.show(`Continuing on ${FAMILY_LABEL[to]} in “${fork.title}”`, { variant: "success", durationMs: 5_000 });
+        toast.show(`Продолжение в ${FAMILY_LABEL[to]} in “${fork.title}»`, { variant: "success", durationMs: 5_000 });
       } catch (failure) {
         setError(describe(failure));
         setBusy(false);
@@ -34,20 +34,19 @@ export function forkPopover(store: ZeroSubStore, agentId: string, from: Family, 
 
     return (
       <View style={{ gap: 12, maxWidth: 360 }}>
-        <Text style={text.heading}>Continue on {FAMILY_LABEL[to]}?</Text>
+        <Text style={text.heading}>Продолжить в {FAMILY_LABEL[to]}?</Text>
         <Text style={text.body}>
-          Every {FAMILY_LABEL[from]} account is at its limit. This starts a new {FAMILY_LABEL[to]} agent in this workspace
-          with the conversation so far, allowed no more than this agent is. This agent stays as it is.
+          Лимиты всех аккаунтов {FAMILY_LABEL[from]} исчерпаны. Новый агент {FAMILY_LABEL[to]} получит историю разговора и продолжит работу в этой папке. Права не расширяются, исходный чат сохраняется.
         </Text>
         {error ? <Text style={text.danger}>{error}</Text> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
-          <Button theme={theme} label="Not now" tooltip="Close without starting a new agent" tooltipAlign="end" onPress={close} disabled={busy} />
+          <Button theme={theme} label="Не сейчас" tooltip="Закрыть без создания агента" tooltipAlign="end" onPress={close} disabled={busy} />
           <Button
             theme={theme}
             tone="primary"
             icon="GitFork"
-            label={`Continue on ${FAMILY_LABEL[to]}`}
-            tooltip={`Start a new ${FAMILY_LABEL[to]} agent with this conversation so far`}
+            label={`Продолжить в ${FAMILY_LABEL[to]}`}
+            tooltip={`Создать агента ${FAMILY_LABEL[to]} с историей этого разговора`}
             tooltipAlign="end"
             busy={busy}
             onPress={() => void start()}

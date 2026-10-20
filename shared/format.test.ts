@@ -6,11 +6,11 @@ const NOW = Date.parse("2026-09-23T12:00:00Z");
 
 describe("formatResetIn", () => {
   it("renders compact relative times", () => {
-    expect(formatResetIn("2026-09-23T12:45:00Z", NOW)).toBe("in 45m");
-    expect(formatResetIn("2026-09-23T14:00:00Z", NOW)).toBe("in 2h");
-    expect(formatResetIn("2026-09-23T14:10:00Z", NOW)).toBe("in 2h 10m");
-    expect(formatResetIn("2026-09-26T15:00:00Z", NOW)).toBe("in 3d 3h");
-    expect(formatResetIn("2026-09-23T11:00:00Z", NOW)).toBe("now");
+    expect(formatResetIn("2026-09-23T12:45:00Z", NOW)).toBe("через 45 мин");
+    expect(formatResetIn("2026-09-23T14:00:00Z", NOW)).toBe("через 2 ч");
+    expect(formatResetIn("2026-09-23T14:10:00Z", NOW)).toBe("через 2 ч 10 мин");
+    expect(formatResetIn("2026-09-26T15:00:00Z", NOW)).toBe("через 3 д 3 ч");
+    expect(formatResetIn("2026-09-23T11:00:00Z", NOW)).toBe("сейчас");
     expect(formatResetIn(null, NOW)).toBeNull();
     expect(formatResetIn("not a date", NOW)).toBeNull();
   });
@@ -33,11 +33,11 @@ describe("accountSubtitle", () => {
 
 describe("formatAge", () => {
   it("reads naturally", () => {
-    expect(formatAge("2026-09-23T11:59:30Z", NOW)).toBe("just now");
-    expect(formatAge("2026-09-23T11:54:00Z", NOW)).toBe("6m ago");
-    expect(formatAge("2026-09-23T09:00:00Z", NOW)).toBe("3h ago");
-    expect(formatAge("2026-09-21T12:00:00Z", NOW)).toBe("2d ago");
-    expect(formatAge("garbage", NOW)).toBe("just now");
+    expect(formatAge("2026-09-23T11:59:30Z", NOW)).toBe("только что");
+    expect(formatAge("2026-09-23T11:54:00Z", NOW)).toBe("6 мин назад");
+    expect(formatAge("2026-09-23T09:00:00Z", NOW)).toBe("3 ч назад");
+    expect(formatAge("2026-09-21T12:00:00Z", NOW)).toBe("2 д назад");
+    expect(formatAge("garbage", NOW)).toBe("только что");
   });
 });
 
@@ -69,12 +69,12 @@ describe("account presentation", () => {
 
   it("summarises the busiest window", () => {
     expect(peakUsage(account.usage?.windows ?? [])?.id).toBe("seven_day");
-    expect(usageSummary(account, NOW)).toBe("72% of weekly used · resets in 2d");
+    expect(usageSummary(account, NOW)).toBe("Использовано 72% · Неделя · сброс через 2 д");
   });
 
   it("puts a reached limit first", () => {
     expect(usageSummary({ ...account, status: "limited", limitedUntil: "2026-09-23T13:30:00Z" }, NOW)).toBe(
-      "Limit reached · resets in 1h 30m",
+      "Лимит исчерпан · сброс через 1 ч 30 мин",
     );
   });
 

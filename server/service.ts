@@ -1,3 +1,5 @@
+import { readProxy, saveProxy, testProxy } from "./proxy";
+import { proxyView, ProxyStoredSchema, type ProxyInput } from "../shared/proxy";
 import { randomBytes } from "node:crypto";
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -317,6 +319,7 @@ export class Service {
         if (live) continue;
         await this.adapters[family].logout(home).catch((error: unknown) => log(`signing out ${name} failed`, error));
         await removeHome(home);
+        await saveProxy(family, home, null);
         if (users.length > 0) {
           await this.store.update((draft) => {
             for (const agentId of users) if (draft.sessions[agentId]?.accountId === name) delete draft.sessions[agentId];
@@ -1239,7 +1242,7 @@ export class Service {
       });
     }
 
-    const accounts: AccountView[] = state.accounts.map((account) => {
+    const accounts: AccountView[] = await Promise.all(state.accounts.map(async (account) => {
       const limited = isLimited(account, now);
       return {
         id: account.id,
@@ -1255,8 +1258,9 @@ export class Service {
         usage: this.usage.get(account.id) ?? null,
         agentCount: counts.get(account.id) ?? 0,
         home: account.home,
+        proxy: proxyView(await readProxy(account.family, account.home)),
       };
-    });
+    }));
 
     return {
       accounts,
@@ -1294,21 +1298,21 @@ export class Service {
       const availability = this.availability.get(family);
       if (availability && !availability.ok) {
         warnings.push(
-          `${PROVIDER_NAME[family]} isn't installed where the daemon can run it${availability.detail ? ` (${availability.detail})` : ""}. Install it to add ${FAMILY_LABEL[family]} accounts.`,
+          `${PROVIDER_NAME[family]} не найден на этом хосте. Установите его, чтобы добавлять аккаунты ${FAMILY_LABEL[family]}.${availability.detail && !availability.detail.includes("ENOENT") ? ` Подробности: ${availability.detail}` : ""}`,
         );
       }
     }
     if (process.env.CLAUDE_CODE_OAUTH_TOKEN || process.env.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_API_KEY) {
       warnings.push(
-        "The daemon's environment sets a Claude API key or token. Agents on your CLI login use it; agents on added accounts use their own sign-in.",
+        "В окружении Paseo задан API-ключ или токен Claude. Основной вход CLI использует его; добавленные аккаунты — собственную авторизацию.",
       );
     }
     if (process.env.CODEX_ACCESS_TOKEN) {
-      warnings.push("The daemon's environment sets CODEX_ACCESS_TOKEN. Codex agents on your CLI login use it instead of a ChatGPT sign-in.");
+      warnings.push("В окружении Paseo задан CODEX_ACCESS_TOKEN. Основной вход Codex использует его вместо авторизации ChatGPT.");
     }
     if ((await this.reopener.locate()) === null) {
       warnings.push(
-        "Paseo's command-line tool wasn't found, so running agents change accounts the next time their session starts instead of right away.",
+        "Команда Paseo не найдена. Открытые агенты сменят аккаунт при следующем запуске сессии.",
       );
     }
     return warnings;
@@ -1501,6 +1505,23 @@ export class Service {
     return this.reconcile(paseo, "manual", [agentId]);
   }
 
+  async setProxy(accountId: string, proxy: ProxyInput | null): Promise<void> {
+    const account = findAccount(await this.store.read(), accountId);
+    if (!account) throw new Error("Аккаунт не найден.");
+    await saveProxy(account.family, account.home, proxy);
+    this.usageAttemptAt.delete(accountId);
+    this.identityCheckedAt.delete(accountId);
+  }
+
+  async checkProxy(family: Family, input: ProxyInput, accountId?: string) {
+    const account = accountId ? findAccount(await this.store.read(), accountId) : null;
+    if (accountId && (!account || account.family !== family)) throw new Error("Аккаунт не найден.");
+    const saved = account ? await readProxy(family, account.home) : null;
+    const config = ProxyStoredSchema.parse({ ...input, password: input.password ?? saved?.password ?? "" });
+    if (config.password && !config.username) throw new Error("Для пароля прокси укажите логин.");
+    return testProxy(config, family);
+  }
+
   async rename(accountId: string, label: string): Promise<void> {
     const state = await this.store.update((draft) => {
       const account = findAccount(draft, accountId);
@@ -1557,11 +1578,11 @@ export class Service {
 
   // ------------------------------------------------------------------ RPC: sign-in
 
-  startLogin(family: Family, method: LoginMethod, accountId?: string): Promise<LoginView> {
-    return this.loginLocks[family].run(() => this.beginLogin(family, method, accountId));
+  startLogin(family: Family, method: LoginMethod, accountId?: string, proxy?: ProxyInput | null): Promise<LoginView> {
+    return this.loginLocks[family].run(() => this.beginLogin(family, method, accountId, proxy));
   }
 
-  private async beginLogin(family: Family, method: LoginMethod, accountId?: string): Promise<LoginView> {
+  private async beginLogin(family: Family, method: LoginMethod, accountId?: string, proxy?: ProxyInput | null): Promise<LoginView> {
     let availability = this.availability.get(family);
     if (!availability?.ok) {
       await this.ensureFamily(family);
@@ -1578,6 +1599,7 @@ export class Service {
 
     const id = randomBytes(6).toString("hex");
     const home = existing ? existing.home : join(homesDir(), `${family}-${id}`);
+    if (proxy !== undefined) await saveProxy(family, home, proxy);
     const session: LoginSession = {
       id,
       family,

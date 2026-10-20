@@ -1,3 +1,4 @@
+import { localizeMessage } from "../shared/messages";
 import type { PluginRpcContract } from "@getpaseo/plugin";
 import type { PluginClientContext } from "@getpaseo/plugin/client";
 import type { ZodType, input as ZodInput, output as ZodOutput } from "zod";
@@ -158,7 +159,7 @@ function isOpen(step: string): boolean {
 }
 
 export function describe(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return localizeMessage(error instanceof Error ? error.message : String(error));
 }
 
 export function useStore(store: ZeroSubStore): StoreSnapshot {

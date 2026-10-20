@@ -1,3 +1,4 @@
+import { localizeMessage } from "../shared/messages";
 import type { PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import { Icon } from "@getpaseo/plugin/client/react-native";
 import { Text, View } from "react-native";
@@ -7,20 +8,20 @@ import type { SwitchRow } from "../shared/timeline";
 
 function cause(row: SwitchRow): string | null {
   const reset = formatResetIn(row.resetsAt);
-  const from = row.from ?? "The previous account";
+  const from = row.from ?? "Предыдущий аккаунт";
   switch (row.reason) {
     case "limit":
-      return `${from} hit its usage limit${reset ? ` (resets ${reset})` : ""}.`;
+      return `${from} исчерпал лимит${reset ? ` (сброс ${reset})` : ""}.`;
     case "signed_out":
-      return `${from} is signed out — sign it in again from Accounts.`;
+      return `${from} требует повторного входа в разделе «Аккаунты».`;
     case "removed":
-      return `${from} was removed.`;
+      return `${from} удалён.`;
     case "disabled":
-      return `${from} was disabled for now.`;
+      return `${from} временно отключён.`;
     case "enabled":
-      return `${row.to} is enabled again.`;
+      return `${row.to} снова включён.`;
     case "default":
-      return "The default account changed.";
+      return "Аккаунт по умолчанию изменён.";
     default:
       return null;
   }
@@ -32,42 +33,15 @@ function isFork(row: SwitchRow): boolean {
 }
 
 export function describeRow(row: SwitchRow): string {
-  if (isFork(row) && row.toFamily && row.continuedIn) {
-    const reset = formatResetIn(row.resetsAt);
-    const lead =
-      row.reason === "exhausted"
-        ? `Every ${FAMILY_LABEL[row.family]} account is at its limit${reset ? ` (${row.from ?? "this one"} resets ${reset})` : ""}, so the work`
-        : "The work";
-    return `${lead} continues on ${FAMILY_LABEL[row.toFamily]} in a new agent: “${row.continuedIn.title}” (${row.to}).`;
-  }
-  if (row.reason === "exhausted") {
-    const reset = formatResetIn(row.resetsAt);
-    return `Every ${FAMILY_LABEL[row.family]} account is at its limit${
-      reset ? `; ${row.from ?? "this one"} resets ${reset}` : ""
-    }. Add another account, use a banked reset from the account button, or wait.${row.detail ? ` ${row.detail}` : ""}`;
-  }
-  if (row.outcome === "reset") {
-    return `${row.from ?? "This account"} hit its usage limit, so a banked reset was used. ${row.detail ?? "Limits reset."}${
-      row.continued ? " Carrying on." : ""
-    }`;
-  }
-  const why = cause(row);
-  const lead = why ? `${why} ` : "";
-  switch (row.outcome) {
-    case "continued":
-      return row.continuedIn
-        ? `${lead}ChatGPT conversations can't change accounts, so this one continues in a new agent: “${row.continuedIn.title}” on ${row.to}.`
-        : `${lead}Continuing on ${row.to}.`;
-    case "stayed":
-      return `${lead}This conversation stays on ${row.from ?? "its account"}.${row.detail ? ` ${row.detail}` : ""}`;
-    case "pending":
-      return `${lead}Moves to ${row.to} when its session next starts.`;
-    default: {
-      const from =
-        row.from && row.reason !== "limit" && row.reason !== "signed_out" && row.reason !== "disabled" ? `from ${row.from} ` : "";
-      return `${lead}Switched ${from}to ${row.to}${row.continued ? " and carried on" : ""}.`;
-    }
-  }
+  const detail = row.detail ? ` ${localizeMessage(row.detail)}` : "";
+  const reset = formatResetIn(row.resetsAt);
+  if (row.continuedIn) return `Продолжение в новом агенте «${row.continuedIn.title}», аккаунт ${row.to}.${detail}`;
+  if (row.reason === "exhausted") return `Лимиты всех аккаунтов ${FAMILY_LABEL[row.family]} исчерпаны.${reset ? ` Сброс ${reset}.` : ""} Добавьте аккаунт, используйте запасной сброс или подождите.${detail}`;
+  if (row.outcome === "reset") return `Для ${row.from ?? "аккаунта"} использован запасной сброс.${row.continued ? " Работа продолжается." : ""}${detail}`;
+  const lead = cause(row);
+  if (row.outcome === "stayed") return `${lead ?? ""} Чат остаётся на аккаунте ${row.from ?? "по умолчанию"}.${detail}`;
+  if (row.outcome === "pending") return `${lead ?? ""} Аккаунт ${row.to} будет использован при следующем запуске сессии.${detail}`;
+  return `${lead ?? ""} Выбран аккаунт ${row.to}.${row.continued ? " Работа продолжается." : ""}${detail}`;
 }
 
 /** Inline note in an agent's timeline when ZeroSub moved it to another account. */

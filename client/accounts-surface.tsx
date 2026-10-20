@@ -1,3 +1,4 @@
+import { ProxyModal } from "./proxy-form";
 import { useHosts, useSettings, type PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { Icon, Modal, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
 import { SettingsCard, SettingsSwitch } from "@getpaseo/plugin/client/ui";
@@ -59,14 +60,14 @@ export function AccountsSurface(props: PluginSurfaceProps & { store: ZeroSubStor
           <Text style={[text.small, { fontWeight: "600", letterSpacing: 0.4 }]}>ZeroSub</Text>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
             <Text style={text.title} accessibilityRole="header">
-              Subscription accounts
+              Аккаунты подписок
             </Text>
             {state ? (
               <IconButton
                 theme={theme}
                 icon="RefreshCw"
-                label="Refresh usage"
-                tooltip="Refresh usage for every account now"
+                label="Обновить лимиты"
+                tooltip="Обновить лимиты всех аккаунтов"
                 tooltipPlacement="bottom"
                 busy={refreshing}
                 onPress={() => void refreshUsage()}
@@ -74,8 +75,7 @@ export function AccountsSurface(props: PluginSurfaceProps & { store: ZeroSubStor
             ) : null}
           </View>
           <Text style={text.muted}>
-            Keep several Claude and ChatGPT accounts signed in. Each agent uses one; when an account
-            hits its limit, agents move to another and keep going.
+            Добавьте аккаунты Claude и ChatGPT. Каждый агент использует выбранный аккаунт, а при исчерпании лимита может продолжить работу на другом.
           </Text>
         </View>
 
@@ -85,16 +85,16 @@ export function AccountsSurface(props: PluginSurfaceProps & { store: ZeroSubStor
           <Card theme={theme}>
             <Text style={text.danger}>
               {offline
-                ? `Can't reach ${host.label}. Its accounts are saved on that machine${
-                    state ? "; this is how they looked last." : " and show up here once it reconnects."
+                ? `Нет связи с ${host.label}. Аккаунты сохранены на этом хосте${
+                    state ? "; показано последнее известное состояние." : "и появятся после восстановления связи."
                   }`
-                : `Could not reach the daemon: ${error}`}
+                : `Не удалось подключиться к демону: ${error}`}
             </Text>
             <Button
               theme={theme}
-              label="Try again"
+              label="Повторить"
               icon="RefreshCw"
-              tooltip="Ask this host for its accounts again"
+              tooltip="Загрузить аккаунты с этого хоста ещё раз"
               tooltipAlign="start"
               onPress={() => void store.refresh()}
             />
@@ -107,7 +107,7 @@ export function AccountsSurface(props: PluginSurfaceProps & { store: ZeroSubStor
           </Card>
         ))}
 
-        {!state && !error ? <Text style={text.muted}>Loading accounts…</Text> : null}
+        {!state && !error ? <Text style={text.muted}>Загрузка аккаунтов…</Text> : null}
 
         {state
           ? families.map((family) => (
@@ -161,11 +161,9 @@ function HostScope({ theme, label }: { theme: Theme; label: string }) {
     >
       <Icon name="Server" size={16} color={theme.colors.foregroundMuted} />
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={text.strong}>Accounts on {label}</Text>
+        <Text style={text.strong}>Аккаунты на {label}</Text>
         <Text style={text.small}>
-          Only agents on this host use them. Each host keeps its own accounts and settings, so sign in on
-          each host you use. Switch hosts with the host picker at the top; a host shows up there once ZeroSub
-          is installed on it.
+          Аккаунты и настройки хранятся отдельно на каждом хосте. Войдите на нужном хосте и переключайте хосты в верхнем меню.
         </Text>
       </View>
     </View>
@@ -199,15 +197,15 @@ function FamilySection({
         <Button
           theme={theme}
           icon="Plus"
-          label={compact ? "Add" : "Add account"}
-          accessibilityLabel={`Add ${FAMILY_LABEL[family]} account`}
-          tooltip={`Sign in another ${FAMILY_LABEL[family]} account`}
+          label={compact ? "Add" : "Добавить аккаунт"}
+          accessibilityLabel={`Добавить аккаунт ${FAMILY_LABEL[family]}`}
+          tooltip={`Добавить ещё один аккаунт ${FAMILY_LABEL[family]}`}
           tooltipAlign="end"
           onPress={onAdd}
         />
       </View>
       {accounts.length === 0 ? (
-        <Text style={text.muted}>No {FAMILY_LABEL[family]} accounts yet.</Text>
+        <Text style={text.muted}>Аккаунтов {FAMILY_LABEL[family]} пока нет.</Text>
       ) : null}
       {chunk(accounts, compact ? 1 : 2).map((row) => (
         <View key={row.map((account) => account.id).join()} style={{ flexDirection: "row", gap: 10 }}>
@@ -242,6 +240,7 @@ function AccountCard({
   const toast = useToast();
   const [busy, setBusy] = useState<"default" | "remove" | "clear" | "toggle" | null>(null);
   const [renaming, setRenaming] = useState(false);
+  const [editingProxy, setEditingProxy] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const resets = account.usage?.resets ?? null;
@@ -252,8 +251,8 @@ function AccountCard({
   const disabled = account.status === "disabled";
   const faded = disabled ? { opacity: 0.55 } : null;
   const windows = account.usage?.windows ?? [];
-  const agents = account.agentCount === 0 ? "No agents" : `${account.agentCount} agent${account.agentCount === 1 ? "" : "s"}`;
-  const freshness = !signedOut && account.usage && windows.length > 0 ? `updated ${formatAge(account.usage.fetchedAt)}` : null;
+  const agents = account.agentCount === 0 ? "Нет агентов" : `Агентов: ${account.agentCount}`;
+  const freshness = !signedOut && account.usage && windows.length > 0 ? `обновлено ${formatAge(account.usage.fetchedAt)}` : null;
 
   // Sets the account aside for a while, or brings it back; its agents move off it and back.
   const toggle = useCallback(async () => {
@@ -261,10 +260,10 @@ function AccountCard({
     setBusy("toggle");
     try {
       const result = await store.rpc(setAccountEnabled, { accountId: account.id, enabled: enabling });
-      const message = describeReopen(`${account.label} is ${enabling ? "enabled" : "disabled"}`, result);
+      const message = describeReopen(`${account.label}: ${enabling ? "включён" : "отключён"}`, result);
       const stayed =
         result.stayed > 0
-          ? ` · ${result.stayed} ChatGPT conversation${result.stayed === 1 ? " stays" : "s stay"} on it (they can't change accounts)`
+          ? ` · Чатов ChatGPT на прежнем аккаунте: ${result.stayed}`
           : "";
       toast.show(`${message}${stayed}`, { variant: "success", durationMs: 5_000 });
     } catch (error) {
@@ -278,7 +277,7 @@ function AccountCard({
     setBusy("default");
     try {
       const summary = await store.rpc(setDefaultAccount, { accountId: account.id });
-      toast.show(describeReopen(`${account.label} is now the default`, summary), { variant: "success" });
+      toast.show(describeReopen(`${account.label} выбран по умолчанию`, summary), { variant: "success" });
       await store.refresh();
     } catch (error) {
       toast.error(describe(error));
@@ -292,7 +291,7 @@ function AccountCard({
     setBusy("clear");
     try {
       await store.rpc(clearAccountLimit, { accountId: account.id });
-      toast.show(`${account.label} is available again`, { variant: "success" });
+      toast.show(`${account.label} снова доступен`, { variant: "success" });
     } catch (error) {
       toast.error(describe(error));
     } finally {
@@ -306,8 +305,8 @@ function AccountCard({
       const result = await store.rpc(removeAccount, { accountId: account.id });
       toast.show(
         result.movedAgents > 0
-          ? `Removed ${account.label}; ${result.movedAgents} agent(s) moved to the default account`
-          : `Removed ${account.label}`,
+          ? `Удалён ${account.label}; переключено агентов: ${result.movedAgents}`
+          : `Удалён ${account.label}`,
         { variant: "success" },
       );
       await store.refresh();
@@ -340,8 +339,8 @@ function AccountCard({
             <IconButton
               theme={theme}
               icon="CircleCheck"
-              label="Mark as available again (it has room)"
-              tooltip="Mark as available: use it again before its limit resets, e.g. after upgrading"
+              label="Отметить доступным"
+              tooltip="Использовать снова до сброса лимита, например после смены тарифа"
               busy={busy === "clear"}
               onPress={() => void markAvailable()}
             />
@@ -350,8 +349,8 @@ function AccountCard({
             <IconButton
               theme={theme}
               icon="Star"
-              label="Make default"
-              tooltip="Make default: new agents start on this account"
+              label="По умолчанию"
+              tooltip="Новые агенты будут использовать этот аккаунт"
               busy={busy === "default"}
               onPress={() => void makeDefault()}
             />
@@ -359,22 +358,23 @@ function AccountCard({
           <IconButton
             theme={theme}
             icon={disabled ? "CirclePlay" : "CirclePause"}
-            label={disabled ? "Enable account" : "Disable for now (agents won't use it)"}
+            label={disabled ? "Включить аккаунт" : "Временно отключить аккаунт"}
             tooltip={
               disabled
-                ? "Enable: agents can use this account again"
-                : "Disable for now: agents stop using it and move to your other accounts"
+                ? "Снова разрешить агентам использовать аккаунт"
+                : "Отключить аккаунт и переключить поддерживаемые сессии на другие аккаунты"
             }
             busy={busy === "toggle"}
             onPress={() => void toggle()}
           />
-          <IconButton theme={theme} icon="Pencil" label="Rename" tooltip="Rename this account" onPress={() => setRenaming(true)} />
+          <IconButton theme={theme} icon="Globe" label="Прокси" tooltip="Настроить подключение аккаунта" onPress={() => setEditingProxy(true)} />
+          <IconButton theme={theme} icon="Pencil" label="Переименовать" tooltip="Переименовать аккаунт" onPress={() => setRenaming(true)} />
           {account.kind !== "main" ? (
             <IconButton
               theme={theme}
               icon="Trash2"
-              label="Remove"
-              tooltip="Remove: sign it out and delete its saved login"
+              label="Удалить"
+              tooltip="Выйти и удалить сохранённую авторизацию"
               tone="danger"
               busy={busy === "remove"}
               onPress={() => setConfirmRemove(true)}
@@ -384,22 +384,23 @@ function AccountCard({
       </View>
 
       <View style={[{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }, faded]}>
-        {account.isDefault ? <Badge theme={theme} label="Default" tone="accent" /> : null}
-        {disabled ? <Badge theme={theme} label="Disabled" /> : null}
+        {account.proxy ? <Badge theme={theme} label={`${account.proxy.type.toUpperCase()} · ${account.proxy.host}:${account.proxy.port}`} /> : null}
+        {account.isDefault ? <Badge theme={theme} label="По умолчанию" tone="accent" /> : null}
+        {disabled ? <Badge theme={theme} label="Отключён" /> : null}
         {plan ? <Badge theme={theme} label={plan} /> : null}
-        {account.kind === "main" ? <Badge theme={theme} label="CLI login" /> : null}
-        {account.status === "limited" ? <Badge theme={theme} label="Limit reached" tone="danger" /> : null}
-        {account.status === "signed_out" ? <Badge theme={theme} label="Signed out" tone="warning" /> : null}
+        {account.kind === "main" ? <Badge theme={theme} label="Основной вход CLI" /> : null}
+        {account.status === "limited" ? <Badge theme={theme} label="Лимит исчерпан" tone="danger" /> : null}
+        {account.status === "signed_out" ? <Badge theme={theme} label="Требуется вход" tone="warning" /> : null}
         {resets && !signedOut ? <Badge theme={theme} label={resetBadge(resets)} tone="accent" /> : null}
       </View>
 
       <View style={[{ gap: 10 }, faded]}>
         {signedOut ? (
-          <Text style={text.small}>Sign in again to use this account.</Text>
+          <Text style={text.small}>Войдите заново, чтобы использовать аккаунт.</Text>
         ) : windows.length > 0 ? (
           windows.map((limit) => <UsageBar key={limit.id} theme={theme} limit={limit} />)
         ) : (
-          <Text style={text.small}>{account.usage?.error ?? summary ?? "Checking usage…"}</Text>
+          <Text style={text.small}>{account.usage?.error ?? summary ?? "Проверка лимитов…"}</Text>
         )}
         {!signedOut && windows.length > 0 && account.usage?.error ? <Text style={text.small}>{account.usage.error}</Text> : null}
         {!signedOut && resets?.blockedReason ? <Text style={text.small}>{resets.blockedReason}</Text> : null}
@@ -422,7 +423,7 @@ function AccountCard({
         }}
       >
         <Text style={[text.small, { flexShrink: 1 }]} numberOfLines={1}>
-          {disabled ? "Disabled · agents won't use it" : freshness ? `${agents} · ${freshness}` : agents}
+          {disabled ? "Отключён · не используется агентами" : freshness ? `${agents} · ${freshness}` : agents}
         </Text>
         {signedOut ? (
           <Button
@@ -430,8 +431,8 @@ function AccountCard({
             size="small"
             tone="primary"
             icon="LogIn"
-            label="Sign in"
-            tooltip="Sign this account in again"
+            label="Войти"
+            tooltip="Войти в аккаунт заново"
             tooltipAlign="end"
             onPress={onSignIn}
           />
@@ -441,8 +442,8 @@ function AccountCard({
             size="small"
             tone="primary"
             icon="CirclePlay"
-            label="Enable"
-            tooltip="Use this account again; its agents move back to it"
+            label="Включить"
+            tooltip="Включить аккаунт и вернуть поддерживаемые сессии"
             tooltipAlign="end"
             busy={busy === "toggle"}
             onPress={() => void toggle()}
@@ -453,16 +454,16 @@ function AccountCard({
             size="small"
             tone={account.status === "limited" ? "primary" : "secondary"}
             icon="TimerReset"
-            label="Use reset"
-            accessibilityLabel="Use a banked reset"
-            tooltip="Spend a banked reset to refill this account's limits now"
+            label="Сбросить лимиты"
+            accessibilityLabel="Использовать запасной сброс"
+            tooltip="Потратить запасной сброс для восстановления лимитов"
             tooltipAlign="end"
             disabled={!resets.usableNow}
             onPress={() => setConfirmReset(true)}
           />
         ) : null}
       </View>
-      <Modal title="Use a banked reset?" open={confirmReset} onOpenChange={setConfirmReset}>
+      <Modal title="Использовать запасной сброс?" open={confirmReset} onOpenChange={setConfirmReset}>
         <Modal.Content>
           <ResetConfirm
             theme={theme}
@@ -479,24 +480,25 @@ function AccountCard({
         </Modal.Content>
       </Modal>
 
+      {editingProxy ? <ProxyModal theme={theme} account={account} store={store} onClose={() => setEditingProxy(false)} /> : null}
       {renaming ? (
         <RenameModal theme={theme} account={account} store={store} onClose={() => setRenaming(false)} />
       ) : null}
-      <Modal title={`Remove ${account.label}?`} open={confirmRemove} onOpenChange={setConfirmRemove}>
+      <Modal title={`Удалить ${account.label}?`} open={confirmRemove} onOpenChange={setConfirmRemove}>
         <Modal.Content>
           <Text style={text.body}>
             {account.family === "claude"
-              ? "This signs the account out on this machine and deletes its saved login. Agents using it move to the default account; their conversations are kept."
-              : "This signs the account out on this machine and deletes its saved login. New agents use the default account. Existing ChatGPT conversations on it can't move, so start new agents for them."}
+              ? "Аккаунт выйдет из системы на этом хосте, сохранённая авторизация будет удалена. Агенты перейдут на аккаунт по умолчанию, история сохранится."
+              : "Сохранённая авторизация будет удалена. Новые агенты используют аккаунт по умолчанию. Существующие чаты ChatGPT нельзя перенести: сначала создайте продолжение на другом аккаунте или архивируйте их."}
           </Text>
           <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
-            <Button theme={theme} label="Cancel" tooltip="Keep this account" tooltipAlign="end" onPress={() => setConfirmRemove(false)} />
+            <Button theme={theme} label="Отмена" tooltip="Оставить аккаунт" tooltipAlign="end" onPress={() => setConfirmRemove(false)} />
             <Button
               theme={theme}
               tone="danger"
               icon="Trash2"
-              label="Remove"
-              tooltip="Sign it out and delete its saved login; its agents move to the default"
+              label="Удалить"
+              tooltip="Удалить сохранённую авторизацию аккаунта"
               tooltipAlign="end"
               busy={busy === "remove"}
               onPress={() => void remove()}
@@ -551,27 +553,27 @@ function RenameModal({
     [theme],
   );
   return (
-    <Modal title="Rename account" open onOpenChange={(open) => (open ? undefined : onClose())}>
+    <Modal title="Переименовать аккаунт" open onOpenChange={(open) => (open ? undefined : onClose())}>
       <Modal.Content>
-        <Text style={text.muted}>A short name you'll recognise in the composer, like "Work" or "Personal".</Text>
+        <Text style={text.muted}>Короткое понятное название, например «Рабочий» или «Личный».</Text>
         <TextInput
           value={label}
           onChangeText={setLabel}
           autoFocus
           maxLength={40}
-          placeholder="Account name"
+          placeholder="Название аккаунта"
           placeholderTextColor={theme.colors.foregroundMuted}
           onSubmitEditing={() => void save()}
           style={inputStyle}
-          accessibilityLabel="Account name"
+          accessibilityLabel="Название аккаунта"
         />
         <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
-          <Button theme={theme} label="Cancel" tooltip="Keep the current name" tooltipAlign="end" onPress={onClose} />
+          <Button theme={theme} label="Отмена" tooltip="Оставить прежнее название" tooltipAlign="end" onPress={onClose} />
           <Button
             theme={theme}
             tone="primary"
-            label="Save"
-            tooltip="Save the new name"
+            label="Сохранить"
+            tooltip="Сохранить название"
             tooltipAlign="end"
             busy={saving}
             disabled={!label.trim()}
@@ -608,54 +610,54 @@ function AutomationSettings({ theme }: { theme: Theme }) {
   const text = useText(theme);
   if (settings.status === "loading") return null;
   if (settings.status !== "ready") {
-    return <Text style={text.danger}>Preferences unavailable: {settings.error}</Text>;
+    return <Text style={text.danger}>Настройки недоступны: {settings.error}</Text>;
   }
   const save = (patch: Partial<typeof settings.values>) =>
     void settings.save({ ...settings.values, ...patch }, settings.revision);
   return (
     <View style={{ gap: 10 }}>
       <Text style={text.heading} accessibilityRole="header">
-        Automatic switching
+        Автоматическое переключение
       </Text>
       <SettingsCard>
         <SettingsSwitch
-          label="Switch accounts when one hits its limit"
-          hint="Agents move to the account with the most room left."
+          label="Переключать при исчерпании лимита"
+          hint="Агенты переходят на аккаунт с наибольшим остатком лимита."
           value={settings.values.autoSwitch}
           disabled={settings.saving}
           onValueChange={(autoSwitch) => save({ autoSwitch })}
         />
         <SettingsSwitch
-          label="Keep going after a switch"
-          hint="Sends a short follow-up so the interrupted task continues."
+          label="Продолжать после переключения"
+          hint="Отправляет сообщение для продолжения прерванной задачи."
           value={settings.values.autoContinue}
           disabled={settings.saving || !settings.values.autoSwitch}
           onValueChange={(autoContinue) => save({ autoContinue })}
         />
         <SettingsSwitch
-          label="Spread new agents across accounts"
-          hint="New agents start on the account with the most room instead of the default."
+          label="Распределять новых агентов по аккаунтам"
+          hint="Новый агент выбирает аккаунт с наибольшим остатком лимита."
           value={settings.values.balanceNewAgents}
           disabled={settings.saving}
           onValueChange={(balanceNewAgents) => save({ balanceNewAgents })}
         />
         <SettingsSwitch
-          label="Move open agents when the default changes"
-          hint="Off: open agents stay on the account they're using, even after they reopen. New agents, and agents that aren't open at the time, use the new default."
+          label="Переключать открытых агентов при смене аккаунта по умолчанию"
+          hint="Если выключено, открытые агенты сохраняют свой аккаунт. Новые и закрытые сессии используют новый аккаунт по умолчанию."
           value={settings.values.moveAgentsOnDefaultChange}
           disabled={settings.saving}
           onValueChange={(moveAgentsOnDefaultChange) => save({ moveAgentsOnDefaultChange })}
         />
         <SettingsSwitch
-          label="Use banked resets when every account is out"
-          hint="Spends one of the account's banked resets instead of stopping. Resets are scarce, so this is off unless you turn it on."
+          label="Использовать запасные сбросы, когда лимиты исчерпаны везде"
+          hint="Автоматически тратит запасной сброс вместо остановки. По умолчанию выключено."
           value={settings.values.autoRedeem}
           disabled={settings.saving || !settings.values.autoSwitch}
           onValueChange={(autoRedeem) => save({ autoRedeem })}
         />
         <SettingsSwitch
-          label="When every account is out, fork the chat to the other provider"
-          hint="A stopped Claude chat carries on in a new ChatGPT agent, or the other way round, with the conversation so far. The new agent gets no more permissions than the original; the original stays as it was."
+          label="Продолжать у другого провайдера при исчерпании всех лимитов"
+          hint="Создаёт продолжение разговора в ChatGPT вместо Claude или наоборот. Права нового агента не расширяются; исходный чат сохраняется."
           value={settings.values.forkOtherProvider}
           disabled={settings.saving || !settings.values.autoSwitch}
           onValueChange={(forkOtherProvider) => save({ forkOtherProvider })}
@@ -668,10 +670,10 @@ function AutomationSettings({ theme }: { theme: Theme }) {
 
 export function describeReopen(prefix: string, summary: ReopenSummary): string {
   const parts = [prefix];
-  if (summary.continuedIn) parts.push(`continuing in “${summary.continuedIn.title}”`);
-  if (summary.reopened.length > 0) parts.push(`${summary.reopened.length} agent(s) switched`);
-  if (summary.deferred.length > 0) parts.push(`${summary.deferred.length} will switch after their current turn`);
-  if (summary.failed.length > 0) parts.push(`${summary.failed.length} will switch on their next restart`);
+  if (summary.continuedIn) parts.push(`продолжение в «${summary.continuedIn.title}»`);
+  if (summary.reopened.length > 0) parts.push(`${summary.reopened.length} агентов переключено`);
+  if (summary.deferred.length > 0) parts.push(`${summary.deferred.length} переключатся после текущего ответа`);
+  if (summary.failed.length > 0) parts.push(`${summary.failed.length} переключатся при перезапуске`);
   return parts.join(" · ");
 }
 

@@ -1,3 +1,4 @@
+import { ProxyForm, proxyDraft, proxyInput } from "./proxy-form";
 import { openExternalUrl, type PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { copyText, Modal, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -38,6 +39,8 @@ export function AddAccountModal({
   const mobile = layout.platform === "ios" || layout.platform === "android";
   const hostBrowser = state?.browserSignIn !== false;
   const [method, setMethod] = useState<LoginMethod>(hostBrowser && !mobile ? "browser" : "code");
+  const [draft, setDraft] = useState(() => proxyDraft());
+  const [configured, setConfigured] = useState(Boolean(accountId));
   const [loginId, setLoginId] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   // Each start gets a number; only the newest one's answer counts.
@@ -50,7 +53,7 @@ export function AddAccountModal({
       setStartError(null);
       setLoginId(null);
       try {
-        const login = await store.rpc(startLogin, { family, accountId, method: next });
+        const login = await store.rpc(startLogin, { family, accountId, method: next, ...(accountId ? {} : { proxy: proxyInput(draft) }) });
         // The modal closed (or a newer start replaced this one) before the daemon answered.
         if (closed.current || mine !== attempt.current) {
           void store.rpc(cancelLogin, { loginId: login.id }).catch(() => undefined);
@@ -61,12 +64,12 @@ export function AddAccountModal({
         if (!closed.current && mine === attempt.current) setStartError(describe(error));
       }
     },
-    [store, family, accountId],
+    [store, family, accountId, draft],
   );
 
   useEffect(() => {
-    if (attempt.current === 0) void begin(method);
-  }, [begin, method]);
+    if (configured && attempt.current === 0) void begin(method);
+  }, [begin, method, configured]);
 
   useEffect(() => store.watchClosely(), [store]);
 
@@ -89,20 +92,28 @@ export function AddAccountModal({
     [family, begin],
   );
 
-  const title = accountId ? "Sign in again" : `Add ${FAMILY_LABEL[family]} account`;
+  const title = accountId ? "Войти заново" : `Добавить аккаунт ${FAMILY_LABEL[family]}`;
   let body: ReactNode;
-  if (startError) {
+  if (!configured) {
+    body = <>
+      <ProxyForm theme={theme} draft={draft} onChange={setDraft} store={store} family={family} />
+      {startError ? <Text style={text.danger}>{startError}</Text> : null}
+      <Button theme={theme} tone="primary" label="Перейти ко входу" onPress={() => {
+        try { proxyInput(draft); setConfigured(true); } catch (e) { setStartError(describe(e)); }
+      }} />
+    </>;
+  } else if (startError) {
     body = (
       <>
         <Text style={text.danger}>{startError}</Text>
         <Row>
-          <Button theme={theme} label="Close" tooltip="Close without adding an account" tooltipAlign="end" onPress={close} />
+          <Button theme={theme} label="Закрыть" tooltip="Закрыть без добавления аккаунта" tooltipAlign="end" onPress={close} />
           <Button
             theme={theme}
             tone="primary"
             icon="RefreshCw"
-            label="Try again"
-            tooltip="Start the sign-in again"
+            label="Повторить"
+            tooltip="Начать вход заново"
             tooltipAlign="end"
             onPress={() => void begin(method)}
           />
@@ -110,7 +121,7 @@ export function AddAccountModal({
       </>
     );
   } else if (!login || login.step === "starting") {
-    body = <Waiting theme={theme} label="Preparing sign-in…" />;
+    body = <Waiting theme={theme} label="Подготовка входа…" />;
   } else if (login.step === "waiting") {
     body = (
       <SignInSteps
@@ -124,22 +135,21 @@ export function AddAccountModal({
       />
     );
   } else if (login.step === "verifying") {
-    body = <Waiting theme={theme} label="Checking your account…" />;
+    body = <Waiting theme={theme} label="Проверка аккаунта…" />;
   } else if (login.step === "done") {
     const who = account
       ? `${account.label}${account.email && account.email !== account.label ? ` (${account.email})` : ""}${
           account.plan ? ` · ${formatPlan(account.plan)}` : ""
         }`
-      : "The account";
+      : "Аккаунт";
     body = (
       <>
-        <Text style={text.heading}>You're signed in</Text>
+        <Text style={text.heading}>Вход выполнен</Text>
         <Text style={text.body}>
-          {who} is ready. New {FAMILY_LABEL[family]} agents{multiHost ? ` on ${host.label}` : ""} can use it, and you can
-          move an agent to it from the account button in the message box.
+          {who} готов к работе. Выберите этот аккаунт для новых агентов {FAMILY_LABEL[family]} или через кнопку аккаунта в чате.
         </Text>
         <Row>
-          <Button theme={theme} tone="primary" label="Done" tooltip="Close this window" tooltipAlign="end" onPress={onClose} />
+          <Button theme={theme} tone="primary" label="Готово" tooltip="Закрыть окно" tooltipAlign="end" onPress={onClose} />
         </Row>
       </>
     );
@@ -147,16 +157,16 @@ export function AddAccountModal({
     body = (
       <>
         <Text style={login.step === "failed" ? text.danger : text.muted}>
-          {login.message ?? (login.step === "canceled" ? "Sign-in was canceled." : "Sign-in failed.")}
+          {login.message ?? (login.step === "canceled" ? "Вход отменён." : "Войти не удалось.")}
         </Text>
         <Row>
-          <Button theme={theme} label="Close" tooltip="Close without adding an account" tooltipAlign="end" onPress={close} />
+          <Button theme={theme} label="Закрыть" tooltip="Закрыть без добавления аккаунта" tooltipAlign="end" onPress={close} />
           <Button
             theme={theme}
             tone="primary"
             icon="RefreshCw"
-            label="Try again"
-            tooltip="Start the sign-in again"
+            label="Повторить"
+            tooltip="Начать вход заново"
             tooltipAlign="end"
             onPress={() => void begin(method)}
           />
@@ -169,7 +179,7 @@ export function AddAccountModal({
     <Modal title={title} open onOpenChange={(open) => (open ? undefined : close())}>
       <Modal.Content>
         {multiHost && !accountId && login?.step !== "done" ? (
-          <Text style={text.small}>Adds the account on {host.label} only. Other hosts sign in separately.</Text>
+          <Text style={text.small}>Добавляет аккаунт только на {host.label} . На других хостах нужно войти отдельно.</Text>
         ) : null}
         {body}
       </Modal.Content>
@@ -212,9 +222,9 @@ function SignInSteps({
     async (value: string, what: string) => {
       try {
         await copyText(value);
-        toast.show(`${what} copied`, { variant: "success" });
+        toast.show(`${what}: скопировано`, { variant: "success" });
       } catch {
-        toast.error("Couldn't copy. Select the text and copy it yourself.");
+        toast.error("Не удалось скопировать. Выделите текст и скопируйте вручную.");
       }
     },
     [toast],
@@ -251,19 +261,19 @@ function SignInSteps({
   const canSwitch = browserUsable && (family === "codex" || (Boolean(login.url) && Boolean(login.codeUrl)));
   return (
     <View style={{ gap: 16 }}>
-      <Step theme={theme} number={1} title={`Open the ${service} sign-in page`}>
+      <Step theme={theme} number={1} title={`Открыть страницу входа ${service}`}>
         <Text style={text.muted}>
           {pasteFlow || login.userCode
-            ? "Sign in with the account you want to add. This works on any device, including your phone."
-            : "Sign in with the account you want to add, using a browser on the host's own computer. It finishes by itself."}
+            ? "Войдите в нужный аккаунт. Можно использовать любое устройство, включая телефон."
+            : "Войдите в нужный аккаунт в браузере на этом компьютере. Авторизация завершится автоматически."}
         </Text>
         <Row start>
           <Button
             theme={theme}
             tone="primary"
             icon="ExternalLink"
-            label="Open sign-in page"
-            tooltip={`Open the ${service} sign-in page in your browser`}
+            label="Открыть страницу входа"
+            tooltip={`Открыть страницу входа ${service} в браузере`}
             tooltipAlign="start"
             disabled={!link}
             onPress={open}
@@ -272,17 +282,17 @@ function SignInSteps({
             <Button
               theme={theme}
               icon="Copy"
-              label="Copy link"
-              tooltip="Copy the sign-in link, for example to open it on another device"
+              label="Копировать ссылку"
+              tooltip="Скопировать ссылку для входа на другом устройстве"
               tooltipAlign="start"
-              onPress={() => void copy(link, "Link")}
+              onPress={() => void copy(link, "Ссылка")}
             />
           ) : null}
         </Row>
       </Step>
 
       {login.userCode ? (
-        <Step theme={theme} number={2} title="Enter this code on that page">
+        <Step theme={theme} number={2} title="Введите этот код на странице входа">
           <Text selectable style={text.mono}>
             {login.userCode}
           </Text>
@@ -290,39 +300,38 @@ function SignInSteps({
             <Button
               theme={theme}
               icon="Copy"
-              label="Copy code"
-              tooltip="Copy the code to enter on the sign-in page"
+              label="Копировать код"
+              tooltip="Скопировать код для страницы входа"
               tooltipAlign="start"
-              onPress={() => void copy(login.userCode ?? "", "Code")}
+              onPress={() => void copy(login.userCode ?? "", "Код")}
             />
           </Row>
           <Text style={text.small}>
-            If the page says code sign-in is off, turn on device code sign-in in ChatGPT → Settings → Security (or ask
-            your workspace admin), then try again.
+            Если вход по коду отключён, включите его в ChatGPT → Настройки → Безопасность или обратитесь к администратору.
           </Text>
         </Step>
       ) : null}
 
       {pasteFlow ? (
-        <Step theme={theme} number={2} title="Paste the code shown after you sign in">
+        <Step theme={theme} number={2} title="Вставьте код, полученный после входа">
           <TextInput
             value={code}
             onChangeText={setCode}
-            placeholder="Paste code"
+            placeholder="Вставьте код"
             placeholderTextColor={theme.colors.foregroundMuted}
             autoCapitalize="none"
             autoCorrect={false}
             onSubmitEditing={() => void submit()}
             style={inputStyle}
-            accessibilityLabel="Sign-in code"
+            accessibilityLabel="Код входа"
           />
           {codeError ? <Text style={text.danger}>{codeError}</Text> : null}
           <Row start>
             <Button
               theme={theme}
               tone="primary"
-              label="Continue"
-              tooltip="Finish signing in with the pasted code"
+              label="Продолжить"
+              tooltip="Завершить вход с указанным кодом"
               tooltipAlign="start"
               busy={submitting}
               disabled={!code.trim()}
@@ -331,7 +340,7 @@ function SignInSteps({
           </Row>
         </Step>
       ) : (
-        <Waiting theme={theme} label="Waiting for you to finish signing in…" />
+        <Waiting theme={theme} label="Ожидание завершения входа…" />
       )}
 
       {login.message ? <Text style={text.small}>{login.message}</Text> : null}
@@ -343,7 +352,7 @@ function SignInSteps({
           style={{ alignSelf: "flex-start", paddingVertical: 4 }}
         >
           <Text style={{ color: theme.colors.accent, fontSize: 13, fontWeight: "600" }}>
-            {method === "code" ? "At the host's computer? Use its browser instead" : "On a different device? Use a code instead"}
+            {method === "code" ? "На этом компьютере? Войти через браузер" : "На другом устройстве? Войти по коду"}
           </Text>
         </Pressable>
       ) : null}

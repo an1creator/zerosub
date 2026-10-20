@@ -1,9 +1,13 @@
+import { localizeState } from "./shared/messages";
+import { closeBridges, proxyEnvForUrl } from "./server/proxy";
 import type { PluginServerContext, PluginSettingsState } from "@getpaseo/plugin/server";
 import { ClaudeAdapter } from "./server/claude";
 import { CodexAdapter } from "./server/codex";
 import { Service, describe } from "./server/service";
 import { preferences } from "./shared/preferences";
 import {
+  setAccountProxy,
+  checkProxy,
   cancelLogin,
   clearAccountLimit,
   getState,
@@ -30,21 +34,22 @@ export default function contribute(server: PluginServerContext) {
 
   void service.start().catch((error: unknown) => console.error("[ZeroSub] startup failed", describe(error)));
 
-  // Never let routing break or stall an agent: on any error, or if it takes too long (Paseo fails
-  // a hook after 30s), the session simply opens on its usual login.
+  // A routing error must not silently bypass an account proxy. Return a blocked
+  // proxy before the host hook deadline, rather than falling back to the default network.
   server.before("agent.session_open", async ({ request }, context) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const deadline = new Promise<undefined>((resolve) => {
+    const blocked = () => ({ ...request, env: { ...request.env, ...proxyEnvForUrl("http://127.0.0.1:1") } });
+    const deadline = new Promise<ReturnType<typeof blocked>>((resolve) => {
       timer = setTimeout(() => {
-        console.error(`[ZeroSub] routing ${request.agentId} took too long; using the default login`);
-        resolve(undefined);
+        console.error(`[ZeroSub] routing ${request.agentId} took too long; blocking network access`);
+        resolve(blocked());
       }, 15_000);
     });
     try {
       return await Promise.race([service.onSessionOpen(request, context), deadline]);
     } catch (error) {
-      console.error(`[ZeroSub] could not route ${request.agentId}; using the default login`, describe(error));
-      return undefined;
+      console.error(`[ZeroSub] could not route ${request.agentId}; blocking network access`, describe(error));
+      return blocked();
     } finally {
       clearTimeout(timer);
     }
@@ -64,8 +69,10 @@ export default function contribute(server: PluginServerContext) {
     void service.onAgentArchived(event.agent.id).catch(() => undefined);
   });
 
-  server.handle(getState, ({ refreshUsage }, { paseo }) => service.view(paseo, refreshUsage));
-  server.handle(startLogin, ({ family, method, accountId }) => service.startLogin(family, method, accountId));
+  server.handle(setAccountProxy, async ({ accountId, proxy }) => { await service.setProxy(accountId, proxy); return { ok: true as const }; });
+  server.handle(checkProxy, ({ family, accountId, proxy }) => service.checkProxy(family, proxy, accountId));
+  server.handle(getState, async ({ refreshUsage }, { paseo }) => localizeState(await service.view(paseo, refreshUsage)));
+  server.handle(startLogin, ({ family, method, accountId, proxy }) => service.startLogin(family, method, accountId, proxy));
   server.handle(submitLoginCode, ({ loginId, code }) => service.submitCode(loginId, code));
   server.handle(cancelLogin, ({ loginId }) => service.cancelLogin(loginId));
   server.handle(renameAccount, async ({ accountId, label }) => {
@@ -89,5 +96,6 @@ export default function contribute(server: PluginServerContext) {
   return async () => {
     stopSettings();
     await service.stop();
+    await closeBridges();
   };
 }

@@ -1,3 +1,4 @@
+import { proxyEnvironment } from "./proxy";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import type { LoginMethod, ResetOffer, Usage, UsageWindow } from "../shared/model";
@@ -70,7 +71,7 @@ class AppServer {
     try {
       await server.request(
         "initialize",
-        { clientInfo: { name: CLIENT_NAME, title: "Paseo ZeroSub", version: "1.3.0" }, capabilities: { experimentalApi: false } },
+        { clientInfo: { name: CLIENT_NAME, title: "Paseo ZeroSub RU", version: "1.4.0" }, capabilities: { experimentalApi: false } },
         60_000,
       );
       server.send({ method: "initialized" });
@@ -203,8 +204,9 @@ export class CodexAdapter implements FamilyAdapter {
   private readonly snapshots = new Map<string, { at: number; pending: boolean; value: Promise<Snapshot> }>();
 
   async env(home: string | null): Promise<EnvPatch> {
-    if (!home) return { CODEX_HOME: null, CODEX_SQLITE_HOME: null };
-    const patch: EnvPatch = { CODEX_HOME: home };
+    const proxy = await proxyEnvironment("codex", home);
+    if (!home) return { ...proxy, CODEX_HOME: null, CODEX_SQLITE_HOME: null };
+    const patch: EnvPatch = { ...proxy, CODEX_HOME: home };
     // Share thread metadata with the main home so every account sees the same threads.
     const sqlite = await codexSqliteHome();
     patch.CODEX_SQLITE_HOME = sqlite;
