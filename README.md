@@ -29,7 +29,7 @@ Already using ZeroSub? Remove the old plugin entry before installing this versio
 
 ## Choose an account
 
-Click **Add account** and sign in. In a chat, use the account button to switch. Enable **Automatic switching** to let the plugin choose another available account when a limit is reached.
+Click **Add account** and sign in. In a chat, use the account button to open the account picker. Enable **Automatic switching** to let the plugin choose another available account when a limit is reached.
 
 ![Choosing an account from a chat](images/3.png)
 
@@ -40,6 +40,8 @@ When switching Codex accounts, your work continues in a new chat with the previo
 Click the **globe** on an account card. Choose a proxy type, enter the host and port, then add a username and password if required. Click **Test**, then **Save**.
 
 Restart open chats to apply changes. Browser sign-in uses your browser’s connection.
+
+If Paseo 0.12’s built-in Usage panel cannot connect while chats work, see the [compatibility fix](docs/PASEO-012-COMPATIBILITY.md).
 
 ## Credits
 

@@ -298,5 +298,7 @@ export const en = {
   "messages.disabledDefault": "{v0} is disabled. Enable it before making it the default.",
   "messages.notInstalled": "{v0} isn't installed on the daemon machine.",
   "messages.reset": "Codex usage limits reset{v0}.",
-  "messages.resetUsed": "That reset was already used{v0}."
+  "messages.resetUsed": "That reset was already used{v0}.",
+  "picker.current": "Current account",
+  "picker.select": "Use account",
 } as const;

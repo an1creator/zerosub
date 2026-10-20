@@ -1,6 +1,6 @@
 {
   "name": "@an1creator/zerosub",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Manage Claude and Codex accounts with per-account proxies and English/Russian UI.",
   "keywords": [
     "paseo",
@@ -33,7 +33,9 @@
     "!**/*.test.ts",
     "README.md",
     "LICENSE",
-    "!**/*.test.tsx"
+    "!**/*.test.tsx",
+    "docs/",
+    "scripts/"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json",

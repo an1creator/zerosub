@@ -1,3 +1,4 @@
+import { AccountPicker } from "./client/account-picker";
 import { t, subscribeLanguage } from "./shared/i18n";
 import { useLanguage } from "./client/i18n";
 import { SidebarRow } from "@getpaseo/plugin/client/ui";
@@ -15,6 +16,7 @@ export default function contribute(client: PluginClientContext) {
   store.start();
 
   client.addScreen({ id: "accounts", title: () => t("index.client.001"), Component: (props) => <AccountsSurface {...props} store={store} /> });
+  client.addScreen({ id: "account-picker", title: () => t("index.client.001"), Component: (props) => <AccountPicker {...props} store={store} onManage={() => client.openScreen({ screenId: "accounts" })} /> });
   function AccountsSidebar(props: PluginSidebarItemProps) {
     useLanguage();
     return <SidebarRow icon="Users" label={t("index.client.001")} active={props.currentScreen?.screenId === "accounts"} onPress={() => props.openScreen({ screenId: "accounts" })} />;

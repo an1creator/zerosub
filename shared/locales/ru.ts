@@ -299,5 +299,7 @@ export const ru: Record<keyof typeof en, string> = {
   "messages.disabledDefault": "{v0}: сначала включите аккаунт.",
   "messages.notInstalled": "{v0} не установлен на хосте.",
   "messages.reset": "Лимиты Codex сброшены{v0}.",
-  "messages.resetUsed": "Сброс уже использован{v0}."
+  "messages.resetUsed": "Сброс уже использован{v0}.",
+  "picker.current": "Текущий аккаунт",
+  "picker.select": "Выбрать аккаунт",
 };
