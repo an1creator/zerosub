@@ -5,6 +5,8 @@ import { ClaudeAdapter } from "./claude";
 
 const { spawn } = vi.hoisted(() => ({ spawn: vi.fn() }));
 vi.mock("node:child_process", () => ({ spawn }));
+// Process lifecycle tests must not read real account proxy settings or open sockets.
+vi.mock("./proxy", () => ({ proxyEnvironment: async () => ({}), accountFetch: vi.fn() }));
 vi.mock("./binaries", () => ({
   providerCommand: async () => ({ command: "fake-claude", prefix: [] }),
   browserCaptureScript: async () => null,
