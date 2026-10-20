@@ -1506,6 +1506,13 @@ export class Service {
     return this.reconcile(paseo, "manual", [agentId]);
   }
 
+  async revealProxyPassword(accountId: string): Promise<{ password: string }> {
+    const account = findAccount(await this.store.read(), accountId);
+    if (!account) throw new Error(t("service.005"));
+    const proxy = await readProxy(account.family, account.home);
+    return { password: proxy?.password ?? "" };
+  }
+
   async setProxy(accountId: string, proxy: ProxyInput | null): Promise<void> {
     const account = findAccount(await this.store.read(), accountId);
     if (!account) throw new Error(t("service.005"));

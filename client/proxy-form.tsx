@@ -3,11 +3,11 @@ import { t } from "../shared/i18n";
 import { localizeMessage } from "../shared/messages";
 import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { Modal, TextInput } from "@getpaseo/plugin/client/react-native";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import type { AccountView, Family } from "../shared/model";
 import { ProxyInputSchema, type ProxyInput, type ProxyView } from "../shared/proxy";
-import { checkProxy, setAccountProxy } from "../shared/rpc";
+import { checkProxy, setAccountProxy, revealProxyPassword } from "../shared/rpc";
 import { describe, type ZeroSubStore } from "./store";
 import { Button, useText } from "./ui";
 
@@ -33,8 +33,33 @@ export function ProxyForm({ theme, draft, onChange, store, family, accountId }: 
   const text = useText(theme);
   const [showPassword, setShowPassword] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [revealing, setRevealing] = useState(false);
+  const revision = useRef(0);
+  useEffect(() => () => { revision.current++; }, []);
   const [result, setResult] = useState<{ ok: boolean; message: string; level?: "success" | "warning" | "error" } | null>(null);
-  const change = (patch: Partial<ProxyDraft>) => { setResult(null); onChange({ ...draft, ...patch }); };
+  const change = (patch: Partial<ProxyDraft>) => { revision.current++; setResult(null); onChange({ ...draft, ...patch }); };
+  const togglePassword = async () => {
+    if (showPassword) {
+      setShowPassword(false);
+      if (!draft.changedPassword) change({ password: "" });
+      return;
+    }
+    if (draft.changedPassword || !draft.hasPassword || !accountId) {
+      setShowPassword(true);
+      return;
+    }
+    const requestRevision = ++revision.current;
+    setRevealing(true);
+    try {
+      const { password } = await store.rpc(revealProxyPassword, { accountId });
+      // Ignore a late result after editing the form or closing the modal.
+      if (revision.current !== requestRevision) return;
+      onChange({ ...draft, password });
+      setShowPassword(true);
+    } catch (error) {
+      if (revision.current === requestRevision) setResult({ ok: false, message: describe(error) });
+    } finally { setRevealing(false); }
+  };
   const style = { color: theme.colors.foreground, backgroundColor: theme.colors.surface2, borderColor: theme.colors.border,
     borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 14, minWidth: 0 };
   const test = async () => {
@@ -70,7 +95,7 @@ export function ProxyForm({ theme, draft, onChange, store, family, accountId }: 
       <TextInput style={style} value={draft.password} onChangeText={(password) => change({ password, changedPassword: true })} secureTextEntry={!showPassword} autoCapitalize="none" autoCorrect={false}
         placeholder={draft.hasPassword && !draft.changedPassword ? t("proxy-form.012") : t("proxy-form.013")} placeholderTextColor={theme.colors.foregroundMuted} accessibilityLabel={t("proxy-form.014")} />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        <Button theme={theme} label={showPassword ? t("proxy-form.015") : t("proxy-form.016")} onPress={() => setShowPassword(!showPassword)} />
+        <Button theme={theme} label={showPassword ? t("proxy-form.015") : t("proxy-form.016")} busy={revealing} onPress={() => void togglePassword()} />
         {draft.hasPassword ? <Button theme={theme} label={t("proxy-form.017")} onPress={() => change({ password: "", changedPassword: true, hasPassword: false })} /> : null}
         <Button theme={theme} label={t("proxy-form.018")} busy={testing} onPress={() => void test()} />
       </View>

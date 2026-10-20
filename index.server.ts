@@ -6,6 +6,7 @@ import { Service, describe } from "./server/service";
 import { preferences } from "./shared/preferences";
 import {
   setAccountProxy,
+  revealProxyPassword,
   checkProxy,
   cancelLogin,
   clearAccountLimit,
@@ -68,6 +69,7 @@ export default function contribute(server: PluginServerContext) {
     void service.onAgentArchived(event.agent.id).catch(() => undefined);
   });
 
+  server.handle(revealProxyPassword, ({ accountId }) => service.revealProxyPassword(accountId));
   server.handle(setAccountProxy, async ({ accountId, proxy }) => { await service.setProxy(accountId, proxy); return { ok: true as const }; });
   server.handle(checkProxy, ({ family, accountId, proxy }) => service.checkProxy(family, proxy, accountId));
   server.handle(getState, ({ refreshUsage }, { paseo }) => service.view(paseo, refreshUsage));

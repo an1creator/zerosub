@@ -141,3 +141,10 @@ export const checkProxy = defineRpc({
   input: z.object({ family: FamilySchema, accountId: z.string().optional(), proxy: ProxyInputSchema }),
   output: z.object({ ok: z.boolean(), message: z.string(), level: z.enum(["success", "warning", "error"]).optional() }),
 });
+
+/** Explicit user action only: never include passwords in account polling or proxy views. */
+export const revealProxyPassword = defineRpc({
+  name: "zerosub.accounts.proxy.reveal",
+  input: z.object({ accountId: z.string() }),
+  output: z.object({ password: z.string() }),
+});

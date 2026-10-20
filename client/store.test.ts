@@ -4,6 +4,8 @@ import type { LoginView, StateView } from "../shared/model";
 import { getState, setAgentAccount } from "../shared/rpc";
 import { VISIBLE_POLL_MS, createZeroSubStore, type StoreSnapshot } from "./store";
 
+vi.mock("./i18n", () => ({ useLanguage: () => "en" }));
+
 function view(overrides: Partial<StateView> = {}): StateView {
   return {
     accounts: [],
