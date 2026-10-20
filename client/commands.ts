@@ -1,3 +1,4 @@
+import { t } from "../shared/i18n";
 import type { PluginClientContext } from "@getpaseo/plugin/client";
 import { FAMILY_LABEL, type AccountView, type StateView } from "../shared/model";
 import { setAgentAccount, setDefaultAccount } from "../shared/rpc";
@@ -10,7 +11,7 @@ export function contributeCommands(client: PluginClientContext, store: ZeroSubSt
   removers.push(
     client.addCommandCenterItem({
       id: "open-accounts",
-      title: "Управление аккаунтами подписок (ZeroSub)",
+      title: t("commands.001"),
       icon: "Users",
       keywords: ["zerosub", "claude", "chatgpt", "codex", "account", "subscription", "login", "switch"],
       context: "global",
@@ -23,13 +24,13 @@ export function contributeCommands(client: PluginClientContext, store: ZeroSubSt
   removers.push(
     client.addSlashCommand({
       name: "account",
-      description: "Переключить аккаунт подписки этого агента",
-      argumentHint: "[имя | default]",
+      description: t("commands.002"),
+      argumentHint: t("commands.003"),
       context: "agent",
       async onSubmit({ args, agent, openSurface }) {
         const state = await currentState(store);
         const family = state.providers[agent.provider];
-        if (!family) throw new Error(`Агенты ${agent.provider} не используют подписки Claude или ChatGPT.`);
+        if (!family) throw new Error(t("commands.004", { v0: agent.provider }));
         const query = args.trim();
         if (!query) {
           openSurface("accounts");
@@ -43,10 +44,10 @@ export function contributeCommands(client: PluginClientContext, store: ZeroSubSt
         const match = findAccount(accounts, query);
         if (!match) {
           const names = accounts.map((account) => account.label).join(", ");
-          throw new Error(`Аккаунт ${FAMILY_LABEL[family]} «${query}» не найден. Доступны: ${names || "нет"}.`);
+          throw new Error(t("commands.005", { v0: FAMILY_LABEL[family], v1: query, v2: names || t("commands.010") }));
         }
-        if (match.status === "signed_out") throw new Error(`${match.label}: сначала войдите в разделе «Аккаунты».`);
-        if (match.status === "disabled") throw new Error(`${match.label}: сначала включите аккаунт в разделе «Аккаунты».`);
+        if (match.status === "signed_out") throw new Error(t("commands.006", { v0: match.label }));
+        if (match.status === "disabled") throw new Error(t("commands.007", { v0: match.label }));
         await store.rpc(setAgentAccount, { agentId: agent.id, accountId: match.id });
       },
     }),
@@ -68,7 +69,7 @@ export function contributeCommands(client: PluginClientContext, store: ZeroSubSt
       dynamic.push(
         client.addCommandCenterItem({
           id: `default-${index}`,
-          title: `Выбрать ${account.label} по умолчанию для ${FAMILY_LABEL[account.family]}`,
+          title: t("commands.008", { v0: account.label, v1: FAMILY_LABEL[account.family] }),
           icon: "Star",
           keywords: ["account", "default", "switch", account.email ?? "", account.family],
           context: "global",
@@ -92,7 +93,7 @@ export function contributeCommands(client: PluginClientContext, store: ZeroSubSt
 async function currentState(store: ZeroSubStore): Promise<StateView> {
   if (!store.current.state) await store.refresh();
   const state = store.current.state;
-  if (!state) throw new Error(store.current.error ?? "Аккаунты пока недоступны.");
+  if (!state) throw new Error(store.current.error ?? t("commands.009"));
   return state;
 }
 

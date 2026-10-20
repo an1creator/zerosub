@@ -37,7 +37,7 @@ it("HTTP CONNECT sends proxy credentials only to the proxy and transports bytes"
 it("HTTP rejection fails without a direct retry or credential disclosure", async () => {
   const proxy = http.createServer();
   proxy.on("connect", (_req, socket) => socket.end("HTTP/1.1 407 Proxy Authentication Required\r\n\r\n"));
-  await expect(tunnel(config(await listen(proxy)), "must-not-resolve.invalid", 443)).rejects.toThrow("логин или пароль");
+  await expect(tunnel(config(await listen(proxy)), "must-not-resolve.invalid", 443)).rejects.toThrow("username or password");
 });
 
 it("SOCKS5 authenticates and sends the domain to the proxy, not local DNS", async () => {
@@ -71,7 +71,7 @@ it("HTTPS proxy rejects an untrusted certificate", async () => {
   execFileSync("openssl", ["req","-x509","-newkey","rsa:2048","-nodes","-keyout",join(dir,"key.pem"),"-out",join(dir,"cert.pem"),"-subj","/CN=localhost","-days","1"], { stdio:"ignore" });
   const proxy = https.createServer({ key:await readFile(join(dir,"key.pem")), cert:await readFile(join(dir,"cert.pem")) });
   proxy.on("tlsClientError", () => undefined);
-  await expect(tunnel(config(await listen(proxy), "https"), "provider.test",443)).rejects.toThrow("сертификат");
+  await expect(tunnel(config(await listen(proxy), "https"), "provider.test",443)).rejects.toThrow("certificate");
 });
 
 it("loopback bridge requires a secret and never forwards HTTP plaintext", async () => {

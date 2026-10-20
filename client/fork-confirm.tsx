@@ -1,3 +1,4 @@
+import { t } from "../shared/i18n";
 import type { PluginButtonContentProps } from "@getpaseo/plugin/client";
 import { useToast } from "@getpaseo/plugin/client/react-native";
 import { useState, type ComponentType } from "react";
@@ -25,7 +26,7 @@ export function forkPopover(store: ZeroSubStore, agentId: string, from: Family, 
       try {
         const fork = await store.rpc(forkAgent, { agentId });
         close();
-        toast.show(`Продолжение в ${FAMILY_LABEL[to]} in “${fork.title}»`, { variant: "success", durationMs: 5_000 });
+        toast.show(t("fork-confirm.001", { v0: FAMILY_LABEL[to], v1: fork.title }), { variant: "success", durationMs: 5_000 });
       } catch (failure) {
         setError(describe(failure));
         setBusy(false);
@@ -34,19 +35,17 @@ export function forkPopover(store: ZeroSubStore, agentId: string, from: Family, 
 
     return (
       <View style={{ gap: 12, maxWidth: 360 }}>
-        <Text style={text.heading}>Продолжить в {FAMILY_LABEL[to]}?</Text>
-        <Text style={text.body}>
-          Лимиты всех аккаунтов {FAMILY_LABEL[from]} исчерпаны. Новый агент {FAMILY_LABEL[to]} получит историю разговора и продолжит работу в этой папке. Права не расширяются, исходный чат сохраняется.
-        </Text>
+        <Text style={text.heading}>{t("fork-confirm.002", { v0: FAMILY_LABEL[to] })}</Text>
+        <Text style={text.body}>{t("fork-confirm.003", { v0: FAMILY_LABEL[from], v1: FAMILY_LABEL[to] })}</Text>
         {error ? <Text style={text.danger}>{error}</Text> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
-          <Button theme={theme} label="Не сейчас" tooltip="Закрыть без создания агента" tooltipAlign="end" onPress={close} disabled={busy} />
+          <Button theme={theme} label={t("fork-confirm.004")} tooltip={t("fork-confirm.005")} tooltipAlign="end" onPress={close} disabled={busy} />
           <Button
             theme={theme}
             tone="primary"
             icon="GitFork"
-            label={`Продолжить в ${FAMILY_LABEL[to]}`}
-            tooltip={`Создать агента ${FAMILY_LABEL[to]} с историей этого разговора`}
+            label={t("fork-confirm.006", { v0: FAMILY_LABEL[to] })}
+            tooltip={t("fork-confirm.007", { v0: FAMILY_LABEL[to] })}
             tooltipAlign="end"
             busy={busy}
             onPress={() => void start()}

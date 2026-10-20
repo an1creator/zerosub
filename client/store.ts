@@ -1,8 +1,9 @@
-import { localizeMessage } from "../shared/messages";
+import { useLanguage } from "./i18n";
+import { localizeMessage, localizeState } from "../shared/messages";
 import type { PluginRpcContract } from "@getpaseo/plugin";
 import type { PluginClientContext } from "@getpaseo/plugin/client";
 import type { ZodType, input as ZodInput, output as ZodOutput } from "zod";
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useMemo } from "react";
 import type { StateView } from "../shared/model";
 import { getState } from "../shared/rpc";
 
@@ -163,5 +164,7 @@ export function describe(error: unknown): string {
 }
 
 export function useStore(store: ZeroSubStore): StoreSnapshot {
-  return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  const language = useLanguage();
+  const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  return useMemo(() => ({ state: snapshot.state ? localizeState(snapshot.state) : null, error: snapshot.error ? localizeMessage(snapshot.error) : null }), [snapshot, language]);
 }

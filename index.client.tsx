@@ -1,4 +1,7 @@
-import type { PluginClientContext } from "@getpaseo/plugin/client";
+import { t, subscribeLanguage } from "./shared/i18n";
+import { useLanguage } from "./client/i18n";
+import { SidebarRow } from "@getpaseo/plugin/client/ui";
+import type { PluginClientContext, PluginSidebarItemProps } from "@getpaseo/plugin/client";
 import { AccountsSurface } from "./client/accounts-surface";
 import { contributeCommands } from "./client/commands";
 import { contributePills } from "./client/pills";
@@ -11,11 +14,15 @@ export default function contribute(client: PluginClientContext) {
   const store = createZeroSubStore(client);
   store.start();
 
-  client.addSurface("accounts", (props) => <AccountsSurface {...props} store={store} />);
-  client.addSidebarItem({ id: "accounts", title: "Аккаунты (ZeroSub)", icon: "Users", surface: "accounts" });
-  client.addSettingsScreen({
+  client.addScreen({ id: "accounts", title: () => t("index.client.001"), Component: (props) => <AccountsSurface {...props} store={store} /> });
+  function AccountsSidebar(props: PluginSidebarItemProps) {
+    useLanguage();
+    return <SidebarRow icon="Users" label={t("index.client.001")} active={props.currentScreen?.screenId === "accounts"} onPress={() => props.openScreen({ screenId: "accounts" })} />;
+  }
+  const registerSidebar = () => client.addSidebarHeaderItem({ id: "accounts", title: t("index.client.001"), Component: AccountsSidebar });
+  const registerSettings = () => client.addSettingsScreen({
     id: "preferences",
-    title: "Настройки ZeroSub",
+    title: t("index.client.002"),
     icon: "SlidersHorizontal",
     Component: (props) => (
       <PreferencesScreen {...props} onOpenAccounts={() => client.openSurface("accounts")} />
@@ -28,10 +35,21 @@ export default function contribute(client: PluginClientContext) {
     Component: SwitchRowView,
   });
 
-  const stopCommands = contributeCommands(client, store);
+  let stopSidebar = registerSidebar();
+  let stopSettings = registerSettings();
+  let stopCommands = contributeCommands(client, store);
+  const stopLanguage = subscribeLanguage(() => {
+    stopSidebar(); stopSettings(); stopCommands();
+    stopSidebar = registerSidebar();
+    stopSettings = registerSettings();
+    stopCommands = contributeCommands(client, store);
+  });
   const stopPills = contributePills(client, store);
 
   return () => {
+    stopLanguage();
+    stopSidebar();
+    stopSettings();
     stopPills();
     stopCommands();
     store.stop();

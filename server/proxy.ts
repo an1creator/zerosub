@@ -1,3 +1,4 @@
+import { t } from "../shared/i18n";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
@@ -28,8 +29,8 @@ export async function saveProxy(family: Family, home: string | null, input: Prox
     const id = key(family, home);
     if (input) {
       const config = ProxyStoredSchema.parse({ ...input, password: input.password ?? all[id]?.password ?? "" });
-      if (config.password && !config.username) throw new Error("Для пароля прокси укажите логин.");
-      if (config.type !== "socks5" && config.username.includes(":")) throw new Error("Логин HTTP-прокси не должен содержать двоеточие.");
+      if (config.password && !config.username) throw new Error(t("proxy-form.002"));
+      if (config.type !== "socks5" && config.username.includes(":")) throw new Error(t("proxy.001"));
       all[id] = config;
     } else delete all[id];
     await writeJsonAtomic(join(dataDir(), "proxies.json"), all);
@@ -65,12 +66,12 @@ export async function tunnel(config: ProxyConfig, host: string, port: number): P
       hostname: config.host.replace(/^\[|\]$/g, ""), port: config.port, method: "CONNECT", path: authority, headers,
     });
     const timer = setTimeout(() => request.destroy(new Error("Proxy timeout")), 15_000);
-    request.on("error", () => { clearTimeout(timer); reject(new Error("Не удалось соединиться с прокси. Проверьте адрес, сертификат и доступность.")); });
+    request.on("error", () => { clearTimeout(timer); reject(new Error(t("proxy.002"))); });
     request.on("connect", (response, socket, head) => {
       clearTimeout(timer);
       if (response.statusCode !== 200) {
         socket.destroy();
-        reject(new Error(response.statusCode === 407 ? "Прокси отклонил логин или пароль." : `Прокси отклонил соединение (HTTP ${response.statusCode}).`));
+        reject(new Error(response.statusCode === 407 ? t("proxy.003") : t("proxy.004", { v0: response.statusCode })));
       } else {
         if (head.length) socket.unshift(head);
         resolve(socket);
@@ -141,19 +142,19 @@ export async function accountFetch(family: Family, home: string | null, url: str
   const config = await readProxy(family, home);
   if (!config) return fetch(url, init);
   const target = new URL(url);
-  if (target.protocol !== "https:") throw new Error("Требуется HTTPS.");
+  if (target.protocol !== "https:") throw new Error(t("proxy.005"));
   return new Promise((resolve, reject) => {
     const request = https.request(target, { method: init.method ?? "GET", headers: init.headers as Record<string, string>,
       agent: agentFor(config), signal: init.signal ?? undefined }, (response) => {
       const chunks: Buffer[] = []; let size = 0;
       response.on("data", (chunk: Buffer) => { size += chunk.length; if (size > 2 * 1024 * 1024) request.destroy(); else chunks.push(chunk); });
-      response.on("error", () => reject(new Error("Ответ через прокси прерван.")));
+      response.on("error", () => reject(new Error(t("proxy.006"))));
       response.on("end", () => resolve(new Response(Buffer.concat(chunks), { status: response.statusCode ?? 502,
         headers: Object.fromEntries(Object.entries(response.headers).filter(([, v]) => typeof v === "string") as [string,string][]) })));
     });
     const timer = setTimeout(() => request.destroy(), 20_000);
     request.on("close", () => clearTimeout(timer));
-    request.on("error", () => reject(new Error("Запрос через прокси не выполнен. Проверьте подключение и авторизацию прокси.")));
+    request.on("error", () => reject(new Error(t("proxy.007"))));
     if (typeof init.body === "string") request.write(init.body);
     request.end();
   });
@@ -162,16 +163,16 @@ export type ProxyCheckResult = { ok: boolean; message: string; level: "success" 
 
 export function describeProxyCheck(status: number, secure: boolean, challenge = false): ProxyCheckResult {
   if (!secure || status === 407) return { ok: false, level: "error", message: status === 407
-    ? "Прокси отклонил логин или пароль (HTTP 407)."
-    : "Защищённое соединение с API через прокси не установлено. Проверьте адрес, авторизацию и сертификат." };
+    ? t("proxy.008")
+    : t("proxy.009") };
   if (status === 401) return { ok: true, level: "success",
-    message: "Прокси работает: API доступен и вернул ожидаемый HTTP 401 — запрос отправлен без токена подписки." };
+    message: t("proxy.010") };
   if (status >= 200 && status < 300) return { ok: true, level: "success",
-    message: `Прокси работает: API ответил HTTP ${status}. Доступ аккаунта проверяется отдельно при обновлении лимитов.` };
+    message: t("proxy.011", { v0: status }) };
   if (status === 403) return { ok: false, level: "warning", message: challenge
-    ? "Прокси установил соединение, но Cloudflare требует браузерную проверку (HTTP 403). Доступ к API не подтверждён."
-    : "Прокси установил соединение, но API запретил запрос (HTTP 403). Доступ к API не подтверждён." };
-  return { ok: false, level: "warning", message: `Соединение через прокси установлено, но API ответил HTTP ${status}. Успешный доступ не подтверждён.` };
+    ? t("proxy.012")
+    : t("proxy.013") };
+  return { ok: false, level: "warning", message: t("proxy.014", { v0: status }) };
 }
 
 export async function testProxy(config: ProxyConfig, family: Family): Promise<ProxyCheckResult> {
@@ -186,7 +187,7 @@ export async function testProxy(config: ProxyConfig, family: Family): Promise<Pr
     });
     const timer = setTimeout(() => request.destroy(), 15_000);
     request.on("close", () => clearTimeout(timer));
-    request.on("error", () => resolve({ ok: false, level: "error", message: "Проверка не прошла: проверьте адрес, порт, логин, пароль и сертификат прокси." }));
+    request.on("error", () => resolve({ ok: false, level: "error", message: t("proxy.015") }));
     request.end();
   });
 }

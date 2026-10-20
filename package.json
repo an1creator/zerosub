@@ -1,7 +1,7 @@
 {
   "name": "@an1creator/zerosub",
-  "version": "1.4.0",
-  "description": "ZeroSub RU: аккаунты Claude и Codex, русский интерфейс и HTTP/HTTPS/SOCKS5-прокси для каждого аккаунта.",
+  "version": "1.5.0",
+  "description": "Manage Claude and Codex accounts with per-account proxies and English/Russian UI.",
   "keywords": [
     "paseo",
     "paseo-plugin",
@@ -32,7 +32,8 @@
     "shared/",
     "!**/*.test.ts",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "!**/*.test.tsx"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json",
@@ -40,15 +41,17 @@
     "audit:mobile": "! grep -rnE \"\\\\b(document|window|localStorage|navigator)\\\\.|<(div|span|p|a|button|input|img|ul|ol|li|section|header|footer|main|nav|form|label|h[1-6]|table|tr|td|svg|path|br|hr)[ >/]|className=|onClick=\" client/"
   },
   "devDependencies": {
-    "@getpaseo/client": "0.9.1",
-    "@getpaseo/plugin": "0.9.1",
-    "@getpaseo/protocol": "0.9.1",
+    "@getpaseo/client": "^0.12.0",
+    "@getpaseo/plugin": "^0.12.0",
+    "@getpaseo/protocol": "^0.12.0",
     "@tanstack/react-query": "^5.90.11",
     "@types/node": "^22.20.4",
     "@types/react": "~19.2.0",
+    "@types/react-test-renderer": "^19.3.0",
     "esbuild": "^0.28.2",
     "react": "19.1.0",
     "react-native": "0.81.5",
+    "react-test-renderer": "^19.1.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7",
     "zod": "^4.4.3"

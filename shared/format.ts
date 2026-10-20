@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import type { AccountView, UsageWindow } from "./model";
 
 /** "in 2h 14m", "in 3d 4h", "now". */
@@ -6,16 +7,16 @@ export function formatResetIn(resetsAt: string | null, now: number = Date.now())
   const at = Date.parse(resetsAt);
   if (!Number.isFinite(at)) return null;
   const minutes = Math.round((at - now) / 60_000);
-  if (minutes <= 0) return "сейчас";
-  if (minutes < 60) return `через ${minutes} мин`;
+  if (minutes <= 0) return t("format.001");
+  if (minutes < 60) return t("format.002", { v0: minutes });
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
     const rest = minutes % 60;
-    return rest === 0 ? `через ${hours} ч` : `через ${hours} ч ${rest} мин`;
+    return rest === 0 ? t("format.003", { v0: hours }) : t("format.004", { v0: hours, v1: rest });
   }
   const days = Math.floor(hours / 24);
   const restHours = hours % 24;
-  return restHours === 0 ? `через ${days} д` : `через ${days} д ${restHours} ч`;
+  return restHours === 0 ? t("format.005", { v0: days }) : t("format.006", { v0: days, v1: restHours });
 }
 
 export function formatPercent(value: number): string {
@@ -63,7 +64,7 @@ export function shortLabel(account: Pick<AccountView, "label">, max = 18): strin
   return label.length <= max ? label : `${label.slice(0, max - 1)}…`;
 }
 
-/** One line summarising an account's headroom, e.g. "42% of 5-hour used · сброс in 2h". */
+/** One line summarising an account's headroom, e.g. "42% of 5-hour used · resets in 2h". */
 /**
  * The line under an account's name: its email, plus its organization when that adds something.
  * Claude names a personal organization after its owner ("…'s Organization"), which only repeats it.
@@ -80,27 +81,27 @@ export function accountSubtitle(account: Pick<AccountView, "email" | "organizati
 /** "just now", "6m ago", "3h ago", "2d ago". */
 export function formatAge(at: string, now: number = Date.now()): string {
   const minutes = Math.floor((now - Date.parse(at)) / 60_000);
-  if (!Number.isFinite(minutes) || minutes < 1) return "только что";
-  if (minutes < 60) return `${minutes} мин назад`;
+  if (!Number.isFinite(minutes) || minutes < 1) return t("format.007");
+  if (minutes < 60) return t("format.008", { v0: minutes });
   const hours = Math.round(minutes / 60);
-  return hours < 48 ? `${hours} ч назад` : `${Math.round(hours / 24)} д назад`;
+  return hours < 48 ? t("format.009", { v0: hours }) : t("format.010", { v0: Math.round(hours / 24) });
 }
 
 export function usageSummary(account: AccountView, now: number = Date.now()): string | null {
-  if (account.status === "disabled") return "Временно отключён";
+  if (account.status === "disabled") return t("format.011");
   if (account.status === "limited") {
     const reset = formatResetIn(account.limitedUntil, now);
-    return reset ? `Лимит исчерпан · сброс ${reset}` : "Лимит исчерпан";
+    return reset ? t("format.012", { v0: reset }) : t("accounts-surface.040");
   }
   const peak = account.usage ? peakUsage(account.usage.windows) : null;
   if (!peak) return null;
   const reset = formatResetIn(peak.resetsAt, now);
-  const base = `Использовано ${formatPercent(peak.usedPercent)} · ${usageLabel(peak.label)}`;
-  return reset ? `${base} · сброс ${reset}` : base;
+  const base = t("format.013", { v0: formatPercent(peak.usedPercent), v1: usageLabel(peak.label) });
+  return reset ? t("format.014", { v0: base, v1: reset }) : base;
 }
 
 export function usageLabel(value: string): string {
-  if (/^weekly$/i.test(value)) return "Неделя";
-  if (/^usage$/i.test(value)) return "Использование";
-  return value.replace(/(\d+)-hour/gi, "$1 ч").replace(/(\d+)-day/gi, "$1 д").replace(/(\d+)-minute/gi, "$1 мин").replace(/weekly/gi, "за неделю");
+  if (/^weekly$/i.test(value)) return t("format.015");
+  if (/^usage$/i.test(value)) return t("format.016");
+  return value.replace(/(\d+)-hour/gi, t("format.017")).replace(/(\d+)-day/gi, t("format.018")).replace(/(\d+)-minute/gi, t("format.019")).replace(/weekly/gi, t("format.020"));
 }

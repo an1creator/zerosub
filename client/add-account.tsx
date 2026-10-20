@@ -1,3 +1,5 @@
+import { useLanguage } from "./i18n";
+import { t } from "../shared/i18n";
 import { ProxyForm, proxyDraft, proxyInput } from "./proxy-form";
 import { openExternalUrl, type PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { copyText, Modal, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
@@ -31,6 +33,7 @@ export function AddAccountModal({
   accountId?: string;
   onClose(): void;
 }) {
+  useLanguage();
   const text = useText(theme);
   const { state } = useStore(store);
   // A browser sign-in finishes by redirecting to `localhost` on the host's computer, so it only
@@ -92,13 +95,13 @@ export function AddAccountModal({
     [family, begin],
   );
 
-  const title = accountId ? "Войти заново" : `Добавить аккаунт ${FAMILY_LABEL[family]}`;
+  const title = accountId ? t("add-account.001") : t("accounts-surface.012", { v0: FAMILY_LABEL[family] });
   let body: ReactNode;
   if (!configured) {
     body = <>
       <ProxyForm theme={theme} draft={draft} onChange={setDraft} store={store} family={family} />
       {startError ? <Text style={text.danger}>{startError}</Text> : null}
-      <Button theme={theme} tone="primary" label="Перейти ко входу" onPress={() => {
+      <Button theme={theme} tone="primary" label={t("add-account.002")} onPress={() => {
         try { proxyInput(draft); setConfigured(true); } catch (e) { setStartError(describe(e)); }
       }} />
     </>;
@@ -107,13 +110,13 @@ export function AddAccountModal({
       <>
         <Text style={text.danger}>{startError}</Text>
         <Row>
-          <Button theme={theme} label="Закрыть" tooltip="Закрыть без добавления аккаунта" tooltipAlign="end" onPress={close} />
+          <Button theme={theme} label={t("add-account.003")} tooltip={t("add-account.004")} tooltipAlign="end" onPress={close} />
           <Button
             theme={theme}
             tone="primary"
             icon="RefreshCw"
-            label="Повторить"
-            tooltip="Начать вход заново"
+            label={t("accounts-surface.006")}
+            tooltip={t("add-account.005")}
             tooltipAlign="end"
             onPress={() => void begin(method)}
           />
@@ -121,7 +124,7 @@ export function AddAccountModal({
       </>
     );
   } else if (!login || login.step === "starting") {
-    body = <Waiting theme={theme} label="Подготовка входа…" />;
+    body = <Waiting theme={theme} label={t("add-account.006")} />;
   } else if (login.step === "waiting") {
     body = (
       <SignInSteps
@@ -135,21 +138,19 @@ export function AddAccountModal({
       />
     );
   } else if (login.step === "verifying") {
-    body = <Waiting theme={theme} label="Проверка аккаунта…" />;
+    body = <Waiting theme={theme} label={t("add-account.007")} />;
   } else if (login.step === "done") {
     const who = account
       ? `${account.label}${account.email && account.email !== account.label ? ` (${account.email})` : ""}${
           account.plan ? ` · ${formatPlan(account.plan)}` : ""
         }`
-      : "Аккаунт";
+      : t("add-account.008");
     body = (
       <>
-        <Text style={text.heading}>Вход выполнен</Text>
-        <Text style={text.body}>
-          {who} готов к работе. Выберите этот аккаунт для новых агентов {FAMILY_LABEL[family]} или через кнопку аккаунта в чате.
-        </Text>
+        <Text style={text.heading}>{t("add-account.009")}</Text>
+        <Text style={text.body}>{t("add-account.010", { v0: who, v1: FAMILY_LABEL[family] })}</Text>
         <Row>
-          <Button theme={theme} tone="primary" label="Готово" tooltip="Закрыть окно" tooltipAlign="end" onPress={onClose} />
+          <Button theme={theme} tone="primary" label={t("add-account.011")} tooltip={t("add-account.012")} tooltipAlign="end" onPress={onClose} />
         </Row>
       </>
     );
@@ -157,16 +158,16 @@ export function AddAccountModal({
     body = (
       <>
         <Text style={login.step === "failed" ? text.danger : text.muted}>
-          {login.message ?? (login.step === "canceled" ? "Вход отменён." : "Войти не удалось.")}
+          {login.message ?? (login.step === "canceled" ? t("add-account.013") : t("add-account.014"))}
         </Text>
         <Row>
-          <Button theme={theme} label="Закрыть" tooltip="Закрыть без добавления аккаунта" tooltipAlign="end" onPress={close} />
+          <Button theme={theme} label={t("add-account.003")} tooltip={t("add-account.004")} tooltipAlign="end" onPress={close} />
           <Button
             theme={theme}
             tone="primary"
             icon="RefreshCw"
-            label="Повторить"
-            tooltip="Начать вход заново"
+            label={t("accounts-surface.006")}
+            tooltip={t("add-account.005")}
             tooltipAlign="end"
             onPress={() => void begin(method)}
           />
@@ -179,7 +180,7 @@ export function AddAccountModal({
     <Modal title={title} open onOpenChange={(open) => (open ? undefined : close())}>
       <Modal.Content>
         {multiHost && !accountId && login?.step !== "done" ? (
-          <Text style={text.small}>Добавляет аккаунт только на {host.label} . На других хостах нужно войти отдельно.</Text>
+          <Text style={text.small}>{t("add-account.015", { v0: host.label })}</Text>
         ) : null}
         {body}
       </Modal.Content>
@@ -205,6 +206,7 @@ function SignInSteps({
   browserUsable: boolean;
   onSwitch(method: LoginMethod): void;
 }) {
+  useLanguage();
   const text = useText(theme);
   const toast = useToast();
   const [code, setCode] = useState("");
@@ -222,9 +224,9 @@ function SignInSteps({
     async (value: string, what: string) => {
       try {
         await copyText(value);
-        toast.show(`${what}: скопировано`, { variant: "success" });
+        toast.show(t("add-account.016", { v0: what }), { variant: "success" });
       } catch {
-        toast.error("Не удалось скопировать. Выделите текст и скопируйте вручную.");
+        toast.error(t("add-account.017"));
       }
     },
     [toast],
@@ -261,19 +263,19 @@ function SignInSteps({
   const canSwitch = browserUsable && (family === "codex" || (Boolean(login.url) && Boolean(login.codeUrl)));
   return (
     <View style={{ gap: 16 }}>
-      <Step theme={theme} number={1} title={`Открыть страницу входа ${service}`}>
+      <Step theme={theme} number={1} title={t("add-account.018", { v0: service })}>
         <Text style={text.muted}>
           {pasteFlow || login.userCode
-            ? "Войдите в нужный аккаунт. Можно использовать любое устройство, включая телефон."
-            : "Войдите в нужный аккаунт в браузере на этом компьютере. Авторизация завершится автоматически."}
+            ? t("add-account.019")
+            : t("add-account.020")}
         </Text>
         <Row start>
           <Button
             theme={theme}
             tone="primary"
             icon="ExternalLink"
-            label="Открыть страницу входа"
-            tooltip={`Открыть страницу входа ${service} в браузере`}
+            label={t("add-account.021")}
+            tooltip={t("add-account.022", { v0: service })}
             tooltipAlign="start"
             disabled={!link}
             onPress={open}
@@ -282,17 +284,17 @@ function SignInSteps({
             <Button
               theme={theme}
               icon="Copy"
-              label="Копировать ссылку"
-              tooltip="Скопировать ссылку для входа на другом устройстве"
+              label={t("add-account.023")}
+              tooltip={t("add-account.024")}
               tooltipAlign="start"
-              onPress={() => void copy(link, "Ссылка")}
+              onPress={() => void copy(link, t("add-account.025"))}
             />
           ) : null}
         </Row>
       </Step>
 
       {login.userCode ? (
-        <Step theme={theme} number={2} title="Введите этот код на странице входа">
+        <Step theme={theme} number={2} title={t("add-account.026")}>
           <Text selectable style={text.mono}>
             {login.userCode}
           </Text>
@@ -300,38 +302,36 @@ function SignInSteps({
             <Button
               theme={theme}
               icon="Copy"
-              label="Копировать код"
-              tooltip="Скопировать код для страницы входа"
+              label={t("add-account.027")}
+              tooltip={t("add-account.028")}
               tooltipAlign="start"
-              onPress={() => void copy(login.userCode ?? "", "Код")}
+              onPress={() => void copy(login.userCode ?? "", t("add-account.029"))}
             />
           </Row>
-          <Text style={text.small}>
-            Если вход по коду отключён, включите его в ChatGPT → Настройки → Безопасность или обратитесь к администратору.
-          </Text>
+          <Text style={text.small}>{t("add-account.030")}</Text>
         </Step>
       ) : null}
 
       {pasteFlow ? (
-        <Step theme={theme} number={2} title="Вставьте код, полученный после входа">
+        <Step theme={theme} number={2} title={t("add-account.031")}>
           <TextInput
             value={code}
             onChangeText={setCode}
-            placeholder="Вставьте код"
+            placeholder={t("add-account.032")}
             placeholderTextColor={theme.colors.foregroundMuted}
             autoCapitalize="none"
             autoCorrect={false}
             onSubmitEditing={() => void submit()}
             style={inputStyle}
-            accessibilityLabel="Код входа"
+            accessibilityLabel={t("add-account.033")}
           />
           {codeError ? <Text style={text.danger}>{codeError}</Text> : null}
           <Row start>
             <Button
               theme={theme}
               tone="primary"
-              label="Продолжить"
-              tooltip="Завершить вход с указанным кодом"
+              label={t("add-account.034")}
+              tooltip={t("add-account.035")}
               tooltipAlign="start"
               busy={submitting}
               disabled={!code.trim()}
@@ -340,7 +340,7 @@ function SignInSteps({
           </Row>
         </Step>
       ) : (
-        <Waiting theme={theme} label="Ожидание завершения входа…" />
+        <Waiting theme={theme} label={t("add-account.036")} />
       )}
 
       {login.message ? <Text style={text.small}>{login.message}</Text> : null}
@@ -352,7 +352,7 @@ function SignInSteps({
           style={{ alignSelf: "flex-start", paddingVertical: 4 }}
         >
           <Text style={{ color: theme.colors.accent, fontSize: 13, fontWeight: "600" }}>
-            {method === "code" ? "На этом компьютере? Войти через браузер" : "На другом устройстве? Войти по коду"}
+            {method === "code" ? t("add-account.037") : t("add-account.038")}
           </Text>
         </Pressable>
       ) : null}
@@ -361,6 +361,7 @@ function SignInSteps({
 }
 
 function Step({ theme, number, title, children }: { theme: Theme; number: number; title: string; children: ReactNode }) {
+  useLanguage();
   const text = useText(theme);
   return (
     <View style={{ flexDirection: "row", gap: 12 }}>
@@ -385,6 +386,7 @@ function Step({ theme, number, title, children }: { theme: Theme; number: number
 }
 
 function Waiting({ theme, label }: { theme: Theme; label: string }) {
+  useLanguage();
   const text = useText(theme);
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 }}>
@@ -395,6 +397,7 @@ function Waiting({ theme, label }: { theme: Theme; label: string }) {
 }
 
 function Row({ children, start }: { children: ReactNode; start?: boolean }) {
+  useLanguage();
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: start ? "flex-start" : "flex-end" }}>
       {children}

@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { setLanguage } from "./i18n";
+beforeEach(() => setLanguage("ru"));
+import { beforeEach, describe, expect, it } from "vitest";
 import { accountSubtitle, formatAge, formatPlan, formatResetIn, peakUsage, shortLabel, usageSummary } from "./format";
 import type { AccountView } from "./model";
 

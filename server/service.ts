@@ -1,3 +1,4 @@
+import { t } from "../shared/i18n";
 import { readProxy, saveProxy, testProxy } from "./proxy";
 import { proxyView, ProxyStoredSchema, type ProxyInput } from "../shared/proxy";
 import { randomBytes } from "node:crypto";
@@ -1298,21 +1299,21 @@ export class Service {
       const availability = this.availability.get(family);
       if (availability && !availability.ok) {
         warnings.push(
-          `${PROVIDER_NAME[family]} не найден на этом хосте. Установите его, чтобы добавлять аккаунты ${FAMILY_LABEL[family]}.${availability.detail && !availability.detail.includes("ENOENT") ? ` Подробности: ${availability.detail}` : ""}`,
+          t("service.001", { v0: PROVIDER_NAME[family], v1: FAMILY_LABEL[family], v2: availability.detail && !availability.detail.includes("ENOENT") ? t("service.006", { v0: availability.detail }) : "" }),
         );
       }
     }
     if (process.env.CLAUDE_CODE_OAUTH_TOKEN || process.env.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_API_KEY) {
       warnings.push(
-        "В окружении Paseo задан API-ключ или токен Claude. Основной вход CLI использует его; добавленные аккаунты — собственную авторизацию.",
+        t("service.002"),
       );
     }
     if (process.env.CODEX_ACCESS_TOKEN) {
-      warnings.push("В окружении Paseo задан CODEX_ACCESS_TOKEN. Основной вход Codex использует его вместо авторизации ChatGPT.");
+      warnings.push(t("service.003"));
     }
     if ((await this.reopener.locate()) === null) {
       warnings.push(
-        "Команда Paseo не найдена. Открытые агенты сменят аккаунт при следующем запуске сессии.",
+        t("service.004"),
       );
     }
     return warnings;
@@ -1507,7 +1508,7 @@ export class Service {
 
   async setProxy(accountId: string, proxy: ProxyInput | null): Promise<void> {
     const account = findAccount(await this.store.read(), accountId);
-    if (!account) throw new Error("Аккаунт не найден.");
+    if (!account) throw new Error(t("service.005"));
     await saveProxy(account.family, account.home, proxy);
     this.usageAttemptAt.delete(accountId);
     this.identityCheckedAt.delete(accountId);
@@ -1515,10 +1516,10 @@ export class Service {
 
   async checkProxy(family: Family, input: ProxyInput, accountId?: string) {
     const account = accountId ? findAccount(await this.store.read(), accountId) : null;
-    if (accountId && (!account || account.family !== family)) throw new Error("Аккаунт не найден.");
+    if (accountId && (!account || account.family !== family)) throw new Error(t("service.005"));
     const saved = account ? await readProxy(family, account.home) : null;
     const config = ProxyStoredSchema.parse({ ...input, password: input.password ?? saved?.password ?? "" });
-    if (config.password && !config.username) throw new Error("Для пароля прокси укажите логин.");
+    if (config.password && !config.username) throw new Error(t("proxy-form.002"));
     return testProxy(config, family);
   }
 

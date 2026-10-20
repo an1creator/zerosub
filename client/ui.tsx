@@ -1,3 +1,5 @@
+import { useLanguage } from "./i18n";
+import { t } from "../shared/i18n";
 import { usageLabel } from "../shared/format";
 import type { PluginHostProps } from "@getpaseo/plugin/client";
 import { Icon } from "@getpaseo/plugin/client/react-native";
@@ -63,6 +65,7 @@ function TooltipBubble({
   placement: "top" | "bottom";
   align: TooltipAlign;
 }) {
+  useLanguage();
   const vertical = placement === "top" ? { bottom: "100%" as const, marginBottom: 6 } : { top: "100%" as const, marginTop: 6 };
   const horizontal =
     align === "end"
@@ -108,6 +111,7 @@ export function Button({
   tooltipAlign?: TooltipAlign;
   tooltipPlacement?: "top" | "bottom";
 }) {
+  useLanguage();
   const small = size === "small";
   const tip = useTooltip(tooltip);
   const colors = theme.colors;
@@ -178,6 +182,7 @@ export function IconButton({
   tooltipAlign?: TooltipAlign;
   tooltipPlacement?: "top" | "bottom";
 }) {
+  useLanguage();
   const colors = theme.colors;
   const inactive = disabled || busy;
   const hint = tooltip ?? label;
@@ -234,6 +239,7 @@ export function Badge({
   label: string;
   tone?: "muted" | "accent" | "success" | "warning" | "danger";
 }) {
+  useLanguage();
   const colors = theme.colors;
   const color = {
     muted: colors.foregroundMuted,
@@ -258,6 +264,7 @@ export function Badge({
 }
 
 export function UsageBar({ theme, limit }: { theme: Theme; limit: UsageWindow }) {
+  useLanguage();
   const colors = theme.colors;
   const percent = Math.min(100, Math.max(0, limit.usedPercent));
   const fill =
@@ -269,12 +276,12 @@ export function UsageBar({ theme, limit }: { theme: Theme; limit: UsageWindow })
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{usageLabel(limit.label)}</Text>
         <Text style={{ color: colors.foregroundMuted, fontSize: 12, flexShrink: 1 }}>
           <Text style={{ color: colors.foreground, fontWeight: "600" }}>{formatPercent(percent)}</Text>
-          {reset ? ` · сброс ${reset}` : ""}
+          {reset ? t("ui.001", { v0: reset }) : ""}
         </Text>
       </View>
       <View
         accessibilityRole="progressbar"
-        accessibilityLabel={`${usageLabel(limit.label)}: использовано`}
+        accessibilityLabel={t("ui.002", { v0: usageLabel(limit.label) })}
         accessibilityValue={{ min: 0, max: 100, now: Math.round(percent) }}
         style={{ height: 6, borderRadius: 3, backgroundColor: colors.surface2, overflow: "hidden" }}
       >
@@ -293,6 +300,7 @@ export function Card({
   children: ReactNode;
   fill?: boolean;
 }) {
+  useLanguage();
   return (
     <View
       style={{

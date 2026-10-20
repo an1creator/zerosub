@@ -1,4 +1,3 @@
-import { localizeState } from "./shared/messages";
 import { closeBridges, proxyEnvForUrl } from "./server/proxy";
 import type { PluginServerContext, PluginSettingsState } from "@getpaseo/plugin/server";
 import { ClaudeAdapter } from "./server/claude";
@@ -71,7 +70,7 @@ export default function contribute(server: PluginServerContext) {
 
   server.handle(setAccountProxy, async ({ accountId, proxy }) => { await service.setProxy(accountId, proxy); return { ok: true as const }; });
   server.handle(checkProxy, ({ family, accountId, proxy }) => service.checkProxy(family, proxy, accountId));
-  server.handle(getState, async ({ refreshUsage }, { paseo }) => localizeState(await service.view(paseo, refreshUsage)));
+  server.handle(getState, ({ refreshUsage }, { paseo }) => service.view(paseo, refreshUsage));
   server.handle(startLogin, ({ family, method, accountId, proxy }) => service.startLogin(family, method, accountId, proxy));
   server.handle(submitLoginCode, ({ loginId, code }) => service.submitCode(loginId, code));
   server.handle(cancelLogin, ({ loginId }) => service.cancelLogin(loginId));

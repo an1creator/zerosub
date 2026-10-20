@@ -1,3 +1,5 @@
+import { useLanguage } from "./i18n";
+import { t } from "../shared/i18n";
 import { useHosts, useSettings, type PluginSurfaceProps } from "@getpaseo/plugin/client";
 import {
   SettingsAction,
@@ -12,18 +14,19 @@ import { DEFAULT_CONTINUE_PROMPT, preferences, type Preferences } from "../share
 
 /** Settings → Plugins → zerosub. Accounts themselves live in the sidebar surface. */
 export function PreferencesScreen({ theme, host, onOpenAccounts }: PluginSurfaceProps & { onOpenAccounts(): void }) {
+  useLanguage();
   const settings = useSettings(preferences);
   const multiHost = useHosts().length > 1;
   const [prompt, setPrompt] = useState<string | null>(null);
   const muted = { color: theme.colors.foregroundMuted };
-  if (settings.status === "loading") return <Text style={muted}>Загрузка…</Text>;
+  if (settings.status === "loading") return <Text style={muted}>{t("settings-screen.001")}</Text>;
   if (settings.status !== "ready") {
     return (
-      <SettingsSection title="Настройки">
+      <SettingsSection title={t("settings-screen.002")}>
         <Text style={{ color: theme.colors.statusDanger }}>{settings.error}</Text>
-        <SettingsAction label="Повторить" actionLabel="Обновить" onPress={() => void settings.reload()} />
+        <SettingsAction label={t("accounts-surface.006")} actionLabel={t("settings-screen.003")} onPress={() => void settings.reload()} />
         {settings.status === "invalid" ? (
-          <SettingsAction label="Вернуть настройки по умолчанию" actionLabel="Сбросить" onPress={() => void settings.reset()} />
+          <SettingsAction label={t("settings-screen.004")} actionLabel={t("accounts-surface.049")} onPress={() => void settings.reset()} />
         ) : null}
       </SettingsSection>
     );
@@ -33,89 +36,89 @@ export function PreferencesScreen({ theme, host, onOpenAccounts }: PluginSurface
   return (
     <>
       {multiHost ? (
-        <Text style={muted}>Настройки для агентов на {host.label}. У каждого хоста свои аккаунты и настройки.</Text>
+        <Text style={muted}>{t("settings-screen.005", { v0: host.label })}</Text>
       ) : null}
-      <SettingsSection title="Аккаунты">
+      <SettingsSection title={t("index.client.001")}>
         <SettingsCard>
           <SettingsAction
-            label="Добавление, удаление и выбор основного аккаунта"
-            actionLabel="Открыть аккаунты"
+            label={t("settings-screen.006")}
+            actionLabel={t("settings-screen.007")}
             onPress={onOpenAccounts}
           />
           <SettingsSwitch
-            label="Переключать открытых агентов при смене аккаунта по умолчанию"
-            hint="Если выключено, открытые агенты сохраняют свой аккаунт. Новые и закрытые сессии используют новый аккаунт по умолчанию."
+            label={t("accounts-surface.072")}
+            hint={t("accounts-surface.073")}
             value={settings.values.moveAgentsOnDefaultChange}
             disabled={settings.saving}
             onValueChange={(moveAgentsOnDefaultChange) => save({ moveAgentsOnDefaultChange })}
           />
         </SettingsCard>
       </SettingsSection>
-      <SettingsSection title="Автоматическое переключение">
+      <SettingsSection title={t("accounts-surface.065")}>
         <SettingsCard>
           <SettingsSwitch
-            label="Переключать при исчерпании лимита"
-            hint="Агент переходит на аккаунт с наибольшим остатком лимита."
+            label={t("accounts-surface.066")}
+            hint={t("settings-screen.008")}
             value={settings.values.autoSwitch}
             disabled={settings.saving}
             onValueChange={(autoSwitch) => save({ autoSwitch })}
           />
           <SettingsSwitch
-            label="Продолжать после переключения"
-            hint="Отправляет указанное ниже сообщение для продолжения задачи."
+            label={t("accounts-surface.068")}
+            hint={t("settings-screen.009")}
             value={settings.values.autoContinue}
             disabled={settings.saving || !settings.values.autoSwitch}
             onValueChange={(autoContinue) => save({ autoContinue })}
           />
           <SettingsInput
-            label="Сообщение для продолжения"
+            label={t("settings-screen.010")}
             initialValue={settings.values.continuePrompt}
             onChangeText={setPrompt}
             disabled={settings.saving || !settings.values.autoContinue}
             error={settings.saveError}
           />
           <SettingsAction
-            label="Сохранить сообщение для продолжения"
-            actionLabel="Сохранить"
+            label={t("settings-screen.011")}
+            actionLabel={t("accounts-surface.062")}
             disabled={settings.saving || prompt === null || !prompt.trim()}
             onPress={() => {
               if (prompt?.trim()) save({ continuePrompt: prompt.trim() });
             }}
           />
           <SettingsAction
-            label="Вернуть стандартное сообщение"
-            actionLabel="Восстановить"
+            label={t("settings-screen.012")}
+            actionLabel={t("settings-screen.013")}
             disabled={settings.saving || settings.values.continuePrompt === DEFAULT_CONTINUE_PROMPT}
             onPress={() => save({ continuePrompt: DEFAULT_CONTINUE_PROMPT })}
           />
         </SettingsCard>
       </SettingsSection>
-      <SettingsSection title="Новые агенты и поле ввода">
+      <SettingsSection title={t("settings-screen.014")}>
         <SettingsCard>
           <SettingsSwitch
-            label="Распределять новых агентов по аккаунтам"
-            hint="Новый агент выбирает аккаунт с наибольшим остатком лимита."
+            label={t("accounts-surface.070")}
+            hint={t("accounts-surface.071")}
             value={settings.values.balanceNewAgents}
             disabled={settings.saving}
             onValueChange={(balanceNewAgents) => save({ balanceNewAgents })}
           />
           <SettingsSwitch
-            label="Использовать запасные сбросы, когда лимиты исчерпаны везде"
-            hint="Автоматически тратит запасной сброс вместо остановки. По умолчанию выключено."
+            label={t("accounts-surface.074")}
+            hint={t("accounts-surface.075")}
             value={settings.values.autoRedeem}
             disabled={settings.saving || !settings.values.autoSwitch}
             onValueChange={(autoRedeem) => save({ autoRedeem })}
           />
           <SettingsSwitch
-            label="Продолжать у другого провайдера при исчерпании всех лимитов"
-            hint="Создаёт продолжение разговора в ChatGPT вместо Claude или наоборот. Права нового агента не расширяются; исходный чат сохраняется."
+            label={t("accounts-surface.076")}
+            hint={t("accounts-surface.077")}
             value={settings.values.forkOtherProvider}
             disabled={settings.saving || !settings.values.autoSwitch}
             onValueChange={(forkOtherProvider) => save({ forkOtherProvider })}
           />
           <SettingsSwitch
-            label="Показывать кнопку аккаунта в поле ввода"
-            hint="Появляется у агентов Claude и Codex, когда добавлено два аккаунта или больше."
+            label={t("settings-screen.015")}
+            hint={t("settings-screen.016")}
             value={settings.values.showComposerPill}
             disabled={settings.saving}
             onValueChange={(showComposerPill) => save({ showComposerPill })}

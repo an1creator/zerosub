@@ -1,3 +1,4 @@
+import { t, subscribeLanguage } from "../shared/i18n";
 import type {
   PluginButton,
   PluginButtonMenuEntry,
@@ -72,6 +73,7 @@ export function contributePills(client: PluginClientContext, store: ZeroSubStore
   }
 
   const unsubscribeStore = store.subscribe(sync);
+  const unsubscribeLanguage = subscribeLanguage(sync);
 
   const track = (agent: { id: string; workspaceId?: string | null; provider: string }) => {
     if (!agent.workspaceId) return;
@@ -132,6 +134,7 @@ export function contributePills(client: PluginClientContext, store: ZeroSubStore
   return () => {
     stopped = true;
     lifetime.abort();
+    unsubscribeLanguage();
     unsubscribeStore();
     for (const pill of pills.values()) pill.registration.remove();
     pills.clear();
@@ -174,7 +177,7 @@ function buttonFor(
   const items: PluginButtonMenuEntry[] = accounts.map((account, index) => ({
     kind: "item",
     id: `account-${index}`,
-    title: account.id === current.id || movable ? menuTitle(account) : `Продолжить в ${account.label} (новый агент)`,
+    title: account.id === current.id || movable ? menuTitle(account) : t("pills.001", { v0: account.label }),
     icon: account.id === current.id ? "CircleCheck" : movable ? "Circle" : "CopyPlus",
     disabled: account.status === "signed_out" || account.status === "disabled" || account.id === current.id,
     behavior: { kind: "action", onPress: choose(account.id) },
@@ -185,7 +188,7 @@ function buttonFor(
     const entry: PluginButtonMenuEntry = {
       kind: "item",
       id: "use-reset",
-      title: `Использовать запасной сброс для ${current.label} (осталось: ${resets.available})…`,
+      title: t("pills.002", { v0: current.label, v1: resets.available }),
       icon: "TimerReset",
       behavior: { kind: "popover", Content: resetPopover(store, current, agent.id) },
     };
@@ -196,7 +199,7 @@ function buttonFor(
     wayOut.push({
       kind: "item",
       id: "fork-other",
-      title: `Продолжить в ${FAMILY_LABEL[other]} (новый агент)…`,
+      title: t("pills.003", { v0: FAMILY_LABEL[other] }),
       icon: "GitFork",
       behavior: { kind: "popover", Content: forkPopover(store, agent.id, family, other) },
     });
@@ -208,7 +211,7 @@ function buttonFor(
     items.push({
       kind: "item",
       id: "follow-default",
-      title: fallback ? `По умолчанию (${fallback.label})` : "Следовать настройке по умолчанию",
+      title: fallback ? t("pills.004", { v0: fallback.label }) : t("pills.005"),
       icon: "Undo2",
       behavior: { kind: "action", onPress: choose(null) },
     });
@@ -216,7 +219,7 @@ function buttonFor(
   items.push({
     kind: "item",
     id: "manage",
-    title: "Управление аккаунтами…",
+    title: t("pills.006"),
     icon: "Users",
     behavior: {
       kind: "action",
@@ -226,9 +229,9 @@ function buttonFor(
     },
   });
 
-  const pending = route?.pendingAccountId ? "(после текущего ответа)" : "";
+  const pending = route?.pendingAccountId ? t("pills.007") : "";
   return {
-    title: `Аккаунт: ${current.label}${current.email && current.email !== current.label ? ` (${current.email})` : ""}`,
+    title: t("pills.008", { v0: current.label, v1: current.email && current.email !== current.label ? ` (${current.email})` : "" }),
     icon: current.status === "limited" ? "CircleAlert" : "CircleUserRound",
     label: `${shortLabel(current)}${pending}`,
     behavior: { kind: "menu", items },
@@ -236,11 +239,11 @@ function buttonFor(
 }
 
 function menuTitle(account: AccountView): string {
-  if (account.status === "signed_out") return `${account.label} — требуется вход`;
-  if (account.status === "disabled") return `${account.label} — отключён`;
-  if (account.status === "limited") return `${account.label} — лимит исчерпан`;
+  if (account.status === "signed_out") return t("pills.009", { v0: account.label });
+  if (account.status === "disabled") return t("pills.010", { v0: account.label });
+  if (account.status === "limited") return t("pills.011", { v0: account.label });
   const peak = account.usage ? peakUsage(account.usage.windows) : null;
-  return peak ? `${account.label} — использовано ${formatPercent(peak.usedPercent)}` : account.label;
+  return peak ? t("pills.012", { v0: account.label, v1: formatPercent(peak.usedPercent) }) : account.label;
 }
 
 function menuKey(button: PluginButton): string {

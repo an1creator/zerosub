@@ -1,10 +1,11 @@
+import { t } from "./i18n";
 import { z } from "zod";
 
 export const ProxyFieldsSchema = z.object({
   type: z.enum(["http", "https", "socks5"]),
   host: z.string().trim().min(1).max(253).refine(
     (host) => !/[\s/@?#\\]/.test(host) && (!host.includes(":") || /^\[[0-9a-fA-F:]+\]$/.test(host)),
-    "Укажите имя сервера или IP без схемы и порта; IPv6 — в квадратных скобках.",
+    t("proxy-input.001"),
   ),
   port: z.number().int().min(1).max(65535),
   username: z.string().max(255).default(""),

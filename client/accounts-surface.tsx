@@ -1,3 +1,5 @@
+import { useLanguage } from "./i18n";
+import { t } from "../shared/i18n";
 import { ProxyModal } from "./proxy-form";
 import { useHosts, useSettings, type PluginSurfaceProps } from "@getpaseo/plugin/client";
 import { Icon, Modal, TextInput, useToast } from "@getpaseo/plugin/client/react-native";
@@ -23,6 +25,7 @@ import { Badge, Button, Card, IconButton, UsageBar, useText } from "./ui";
 type Theme = PluginSurfaceProps["theme"];
 
 export function AccountsSurface(props: PluginSurfaceProps & { store: ZeroSubStore }) {
+  useLanguage();
   const { theme, layout, host, store } = props;
   const { state, error } = useStore(store);
   const text = useText(theme);
@@ -57,26 +60,21 @@ export function AccountsSurface(props: PluginSurfaceProps & { store: ZeroSubStor
         }}
       >
         <View style={{ gap: 6 }}>
-          <Text style={[text.small, { fontWeight: "600", letterSpacing: 0.4 }]}>ZeroSub</Text>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <Text style={text.title} accessibilityRole="header">
-              Аккаунты подписок
-            </Text>
+            <Text style={text.title} accessibilityRole="header">{t("index.client.001")}</Text>
             {state ? (
               <IconButton
                 theme={theme}
                 icon="RefreshCw"
-                label="Обновить лимиты"
-                tooltip="Обновить лимиты всех аккаунтов"
+                label={t("accounts-surface.001")}
+                tooltip={t("accounts-surface.002")}
                 tooltipPlacement="bottom"
                 busy={refreshing}
                 onPress={() => void refreshUsage()}
               />
             ) : null}
           </View>
-          <Text style={text.muted}>
-            Аккаунты Claude и ChatGPT с переключением при исчерпании лимитов.
-          </Text>
+          <Text style={text.muted}>{t("accounts-surface.003")}</Text>
         </View>
 
         {multiHost ? <HostScope theme={theme} label={host.label} /> : null}
@@ -85,16 +83,14 @@ export function AccountsSurface(props: PluginSurfaceProps & { store: ZeroSubStor
           <Card theme={theme}>
             <Text style={text.danger}>
               {offline
-                ? `Нет связи с ${host.label}. Аккаунты сохранены на этом хосте${
-                    state ? "; показано последнее известное состояние." : "и появятся после восстановления связи."
-                  }`
-                : `Не удалось подключиться к демону: ${error}`}
+                ? t("accounts-surface.004", { v0: host.label, v1: state ? t("accounts-surface.082") : t("accounts-surface.083") })
+                : t("accounts-surface.005", { v0: error })}
             </Text>
             <Button
               theme={theme}
-              label="Повторить"
+              label={t("accounts-surface.006")}
               icon="RefreshCw"
-              tooltip="Загрузить аккаунты с этого хоста ещё раз"
+              tooltip={t("accounts-surface.007")}
               tooltipAlign="start"
               onPress={() => void store.refresh()}
             />
@@ -107,7 +103,7 @@ export function AccountsSurface(props: PluginSurfaceProps & { store: ZeroSubStor
           </Card>
         ))}
 
-        {!state && !error ? <Text style={text.muted}>Загрузка аккаунтов…</Text> : null}
+        {!state && !error ? <Text style={text.muted}>{t("accounts-surface.008")}</Text> : null}
 
         {state
           ? families.map((family) => (
@@ -145,6 +141,7 @@ export function AccountsSurface(props: PluginSurfaceProps & { store: ZeroSubStor
 
 /** Says whose accounts these are when the app knows several hosts. */
 function HostScope({ theme, label }: { theme: Theme; label: string }) {
+  useLanguage();
   const text = useText(theme);
   return (
     <View
@@ -161,10 +158,8 @@ function HostScope({ theme, label }: { theme: Theme; label: string }) {
     >
       <Icon name="Server" size={16} color={theme.colors.foregroundMuted} />
       <View style={{ flex: 1, gap: 2 }}>
-        <Text style={text.strong}>Аккаунты на {label}</Text>
-        <Text style={text.small}>
-          Аккаунты и настройки хранятся отдельно на каждом хосте. Войдите на нужном хосте и переключайте хосты в верхнем меню.
-        </Text>
+        <Text style={text.strong}>{t("accounts-surface.009", { v0: label })}</Text>
+        <Text style={text.small}>{t("accounts-surface.010")}</Text>
       </View>
     </View>
   );
@@ -187,6 +182,7 @@ function FamilySection({
   onAdd(): void;
   onSignIn(account: AccountView): void;
 }) {
+  useLanguage();
   const text = useText(theme);
   return (
     <View style={{ gap: 10 }}>
@@ -197,15 +193,15 @@ function FamilySection({
         <Button
           theme={theme}
           icon="Plus"
-          label={compact ? "Add" : "Добавить аккаунт"}
-          accessibilityLabel={`Добавить аккаунт ${FAMILY_LABEL[family]}`}
-          tooltip={`Добавить ещё один аккаунт ${FAMILY_LABEL[family]}`}
+          label={compact ? "Add" : t("accounts-surface.011")}
+          accessibilityLabel={t("accounts-surface.012", { v0: FAMILY_LABEL[family] })}
+          tooltip={t("accounts-surface.013", { v0: FAMILY_LABEL[family] })}
           tooltipAlign="end"
           onPress={onAdd}
         />
       </View>
       {accounts.length === 0 ? (
-        <Text style={text.muted}>Аккаунтов {FAMILY_LABEL[family]} пока нет.</Text>
+        <Text style={text.muted}>{t("accounts-surface.014", { v0: FAMILY_LABEL[family] })}</Text>
       ) : null}
       {chunk(accounts, compact ? 1 : 2).map((row) => (
         <View key={row.map((account) => account.id).join()} style={{ flexDirection: "row", gap: 10 }}>
@@ -236,6 +232,7 @@ function AccountCard({
   store: ZeroSubStore;
   onSignIn(): void;
 }) {
+  useLanguage();
   const text = useText(theme);
   const toast = useToast();
   const [busy, setBusy] = useState<"default" | "remove" | "clear" | "toggle" | null>(null);
@@ -251,7 +248,7 @@ function AccountCard({
   const disabled = account.status === "disabled";
   const faded = disabled ? { opacity: 0.55 } : null;
   const windows = account.usage?.windows ?? [];
-  const agents = account.agentCount === 0 ? "Нет агентов" : `Агентов: ${account.agentCount}`;
+  const agents = account.agentCount === 0 ? t("accounts-surface.015") : t("accounts-surface.016", { v0: account.agentCount });
   const freshness = !signedOut && account.usage && windows.length > 0 ? formatAge(account.usage.fetchedAt) : null;
 
   // Sets the account aside for a while, or brings it back; its agents move off it and back.
@@ -260,10 +257,10 @@ function AccountCard({
     setBusy("toggle");
     try {
       const result = await store.rpc(setAccountEnabled, { accountId: account.id, enabled: enabling });
-      const message = describeReopen(`${account.label}: ${enabling ? "включён" : "отключён"}`, result);
+      const message = describeReopen(`${account.label}: ${enabling ? t("accounts-surface.017") : t("accounts-surface.018")}`, result);
       const stayed =
         result.stayed > 0
-          ? ` · Чатов ChatGPT на прежнем аккаунте: ${result.stayed}`
+          ? t("accounts-surface.019", { v0: result.stayed })
           : "";
       toast.show(`${message}${stayed}`, { variant: "success", durationMs: 5_000 });
     } catch (error) {
@@ -277,7 +274,7 @@ function AccountCard({
     setBusy("default");
     try {
       const summary = await store.rpc(setDefaultAccount, { accountId: account.id });
-      toast.show(describeReopen(`${account.label} выбран по умолчанию`, summary), { variant: "success" });
+      toast.show(describeReopen(t("accounts-surface.020", { v0: account.label }), summary), { variant: "success" });
       await store.refresh();
     } catch (error) {
       toast.error(describe(error));
@@ -291,7 +288,7 @@ function AccountCard({
     setBusy("clear");
     try {
       await store.rpc(clearAccountLimit, { accountId: account.id });
-      toast.show(`${account.label} снова доступен`, { variant: "success" });
+      toast.show(t("accounts-surface.021", { v0: account.label }), { variant: "success" });
     } catch (error) {
       toast.error(describe(error));
     } finally {
@@ -305,8 +302,8 @@ function AccountCard({
       const result = await store.rpc(removeAccount, { accountId: account.id });
       toast.show(
         result.movedAgents > 0
-          ? `Удалён ${account.label}; переключено агентов: ${result.movedAgents}`
-          : `Удалён ${account.label}`,
+          ? t("accounts-surface.022", { v0: account.label, v1: result.movedAgents })
+          : t("accounts-surface.023", { v0: account.label }),
         { variant: "success" },
       );
       await store.refresh();
@@ -339,8 +336,8 @@ function AccountCard({
             <IconButton
               theme={theme}
               icon="CircleCheck"
-              label="Отметить доступным"
-              tooltip="Использовать снова до сброса лимита, например после смены тарифа"
+              label={t("accounts-surface.024")}
+              tooltip={t("accounts-surface.025")}
               busy={busy === "clear"}
               onPress={() => void markAvailable()}
             />
@@ -349,8 +346,8 @@ function AccountCard({
             <IconButton
               theme={theme}
               icon="Star"
-              label="По умолчанию"
-              tooltip="Новые агенты будут использовать этот аккаунт"
+              label={t("accounts-surface.026")}
+              tooltip={t("accounts-surface.027")}
               busy={busy === "default"}
               onPress={() => void makeDefault()}
             />
@@ -358,23 +355,23 @@ function AccountCard({
           <IconButton
             theme={theme}
             icon={disabled ? "CirclePlay" : "CirclePause"}
-            label={disabled ? "Включить аккаунт" : "Временно отключить аккаунт"}
+            label={disabled ? t("accounts-surface.028") : t("accounts-surface.029")}
             tooltip={
               disabled
-                ? "Снова разрешить агентам использовать аккаунт"
-                : "Отключить аккаунт и переключить поддерживаемые сессии на другие аккаунты"
+                ? t("accounts-surface.030")
+                : t("accounts-surface.031")
             }
             busy={busy === "toggle"}
             onPress={() => void toggle()}
           />
-          <IconButton theme={theme} icon="Globe" label="Прокси" tooltip="Настроить подключение аккаунта" onPress={() => setEditingProxy(true)} />
-          <IconButton theme={theme} icon="Pencil" label="Переименовать" tooltip="Переименовать аккаунт" onPress={() => setRenaming(true)} />
+          <IconButton theme={theme} icon="Globe" label={t("accounts-surface.032")} tooltip={t("accounts-surface.033")} onPress={() => setEditingProxy(true)} />
+          <IconButton theme={theme} icon="Pencil" label={t("accounts-surface.034")} tooltip={t("accounts-surface.035")} onPress={() => setRenaming(true)} />
           {account.kind !== "main" ? (
             <IconButton
               theme={theme}
               icon="Trash2"
-              label="Удалить"
-              tooltip="Выйти и удалить сохранённую авторизацию"
+              label={t("accounts-surface.036")}
+              tooltip={t("accounts-surface.037")}
               tone="danger"
               busy={busy === "remove"}
               onPress={() => setConfirmRemove(true)}
@@ -385,22 +382,22 @@ function AccountCard({
 
       <View style={[{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6 }, faded]}>
         {account.proxy ? <Badge theme={theme} label={`${account.proxy.type.toUpperCase()} · ${account.proxy.host}:${account.proxy.port}`} /> : null}
-        {account.isDefault ? <Badge theme={theme} label="По умолчанию" tone="accent" /> : null}
-        {disabled ? <Badge theme={theme} label="Отключён" /> : null}
+        {account.isDefault ? <Badge theme={theme} label={t("accounts-surface.026")} tone="accent" /> : null}
+        {disabled ? <Badge theme={theme} label={t("accounts-surface.038")} /> : null}
         {plan ? <Badge theme={theme} label={plan} /> : null}
-        {account.kind === "main" ? <Badge theme={theme} label="Вход CLI" /> : null}
-        {account.status === "limited" ? <Badge theme={theme} label="Лимит исчерпан" tone="danger" /> : null}
-        {account.status === "signed_out" ? <Badge theme={theme} label="Требуется вход" tone="warning" /> : null}
+        {account.kind === "main" ? <Badge theme={theme} label={t("accounts-surface.039")} /> : null}
+        {account.status === "limited" ? <Badge theme={theme} label={t("accounts-surface.040")} tone="danger" /> : null}
+        {account.status === "signed_out" ? <Badge theme={theme} label={t("accounts-surface.041")} tone="warning" /> : null}
         {resets && !signedOut ? <Badge theme={theme} label={resetBadge(resets)} tone="accent" /> : null}
       </View>
 
       <View style={[{ gap: 10 }, faded]}>
         {signedOut ? (
-          <Text style={text.small}>Войдите заново, чтобы использовать аккаунт.</Text>
+          <Text style={text.small}>{t("accounts-surface.042")}</Text>
         ) : windows.length > 0 ? (
           windows.map((limit) => <UsageBar key={limit.id} theme={theme} limit={limit} />)
         ) : (
-          <Text style={text.small}>{account.usage?.error ?? summary ?? "Проверка лимитов…"}</Text>
+          <Text style={text.small}>{account.usage?.error ?? summary ?? t("accounts-surface.043")}</Text>
         )}
         {!signedOut && windows.length > 0 && account.usage?.error ? <Text style={text.small}>{account.usage.error}</Text> : null}
         {!signedOut && resets?.blockedReason ? <Text style={text.small}>{resets.blockedReason}</Text> : null}
@@ -423,7 +420,7 @@ function AccountCard({
         }}
       >
         <Text style={[text.small, { flexShrink: 1 }]} numberOfLines={1}>
-          {disabled ? "Отключён · не используется агентами" : freshness ? `${agents} · ${freshness}` : agents}
+          {disabled ? t("accounts-surface.044") : freshness ? `${agents} · ${freshness}` : agents}
         </Text>
         {signedOut ? (
           <Button
@@ -431,8 +428,8 @@ function AccountCard({
             size="small"
             tone="primary"
             icon="LogIn"
-            label="Войти"
-            tooltip="Войти в аккаунт заново"
+            label={t("accounts-surface.045")}
+            tooltip={t("accounts-surface.046")}
             tooltipAlign="end"
             onPress={onSignIn}
           />
@@ -442,8 +439,8 @@ function AccountCard({
             size="small"
             tone="primary"
             icon="CirclePlay"
-            label="Включить"
-            tooltip="Включить аккаунт и вернуть поддерживаемые сессии"
+            label={t("accounts-surface.047")}
+            tooltip={t("accounts-surface.048")}
             tooltipAlign="end"
             busy={busy === "toggle"}
             onPress={() => void toggle()}
@@ -454,16 +451,16 @@ function AccountCard({
             size="small"
             tone={account.status === "limited" ? "primary" : "secondary"}
             icon="TimerReset"
-            label="Сбросить"
-            accessibilityLabel="Использовать запасной сброс"
-            tooltip="Потратить запасной сброс для восстановления лимитов"
+            label={t("accounts-surface.049")}
+            accessibilityLabel={t("accounts-surface.050")}
+            tooltip={t("accounts-surface.051")}
             tooltipAlign="end"
             disabled={!resets.usableNow}
             onPress={() => setConfirmReset(true)}
           />
         ) : null}
       </View>
-      <Modal title="Использовать запасной сброс?" open={confirmReset} onOpenChange={setConfirmReset}>
+      <Modal title={t("accounts-surface.052")} open={confirmReset} onOpenChange={setConfirmReset}>
         <Modal.Content>
           <ResetConfirm
             theme={theme}
@@ -484,21 +481,21 @@ function AccountCard({
       {renaming ? (
         <RenameModal theme={theme} account={account} store={store} onClose={() => setRenaming(false)} />
       ) : null}
-      <Modal title={`Удалить ${account.label}?`} open={confirmRemove} onOpenChange={setConfirmRemove}>
+      <Modal title={t("accounts-surface.053", { v0: account.label })} open={confirmRemove} onOpenChange={setConfirmRemove}>
         <Modal.Content>
           <Text style={text.body}>
             {account.family === "claude"
-              ? "Аккаунт выйдет из системы на этом хосте, сохранённая авторизация будет удалена. Агенты перейдут на аккаунт по умолчанию, история сохранится."
-              : "Сохранённая авторизация будет удалена. Новые агенты используют аккаунт по умолчанию. Существующие чаты ChatGPT нельзя перенести: сначала создайте продолжение на другом аккаунте или архивируйте их."}
+              ? t("accounts-surface.054")
+              : t("accounts-surface.055")}
           </Text>
           <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
-            <Button theme={theme} label="Отмена" tooltip="Оставить аккаунт" tooltipAlign="end" onPress={() => setConfirmRemove(false)} />
+            <Button theme={theme} label={t("accounts-surface.056")} tooltip={t("accounts-surface.057")} tooltipAlign="end" onPress={() => setConfirmRemove(false)} />
             <Button
               theme={theme}
               tone="danger"
               icon="Trash2"
-              label="Удалить"
-              tooltip="Удалить сохранённую авторизацию аккаунта"
+              label={t("accounts-surface.036")}
+              tooltip={t("accounts-surface.058")}
               tooltipAlign="end"
               busy={busy === "remove"}
               onPress={() => void remove()}
@@ -521,6 +518,7 @@ function RenameModal({
   store: ZeroSubStore;
   onClose(): void;
 }) {
+  useLanguage();
   const text = useText(theme);
   const toast = useToast();
   const [label, setLabel] = useState(account.label);
@@ -553,27 +551,27 @@ function RenameModal({
     [theme],
   );
   return (
-    <Modal title="Переименовать аккаунт" open onOpenChange={(open) => (open ? undefined : onClose())}>
+    <Modal title={t("accounts-surface.035")} open onOpenChange={(open) => (open ? undefined : onClose())}>
       <Modal.Content>
-        <Text style={text.muted}>Короткое понятное название, например «Рабочий» или «Личный».</Text>
+        <Text style={text.muted}>{t("accounts-surface.059")}</Text>
         <TextInput
           value={label}
           onChangeText={setLabel}
           autoFocus
           maxLength={40}
-          placeholder="Название аккаунта"
+          placeholder={t("accounts-surface.060")}
           placeholderTextColor={theme.colors.foregroundMuted}
           onSubmitEditing={() => void save()}
           style={inputStyle}
-          accessibilityLabel="Название аккаунта"
+          accessibilityLabel={t("accounts-surface.060")}
         />
         <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
-          <Button theme={theme} label="Отмена" tooltip="Оставить прежнее название" tooltipAlign="end" onPress={onClose} />
+          <Button theme={theme} label={t("accounts-surface.056")} tooltip={t("accounts-surface.061")} tooltipAlign="end" onPress={onClose} />
           <Button
             theme={theme}
             tone="primary"
-            label="Сохранить"
-            tooltip="Сохранить название"
+            label={t("accounts-surface.062")}
+            tooltip={t("accounts-surface.063")}
             tooltipAlign="end"
             busy={saving}
             disabled={!label.trim()}
@@ -586,6 +584,7 @@ function RenameModal({
 }
 
 function Avatar({ theme, label }: { theme: Theme; label: string }) {
+  useLanguage();
   const initial = label.trim().charAt(0).toUpperCase() || "?";
   return (
     <View
@@ -606,58 +605,57 @@ function Avatar({ theme, label }: { theme: Theme; label: string }) {
 }
 
 function AutomationSettings({ theme }: { theme: Theme }) {
+  useLanguage();
   const settings = useSettings(preferences);
   const text = useText(theme);
   if (settings.status === "loading") return null;
   if (settings.status !== "ready") {
-    return <Text style={text.danger}>Настройки недоступны: {settings.error}</Text>;
+    return <Text style={text.danger}>{t("accounts-surface.064", { v0: settings.error })}</Text>;
   }
   const save = (patch: Partial<typeof settings.values>) =>
     void settings.save({ ...settings.values, ...patch }, settings.revision);
   return (
     <View style={{ gap: 10 }}>
-      <Text style={text.heading} accessibilityRole="header">
-        Автоматическое переключение
-      </Text>
+      <Text style={text.heading} accessibilityRole="header">{t("accounts-surface.065")}</Text>
       <SettingsCard>
         <SettingsSwitch
-          label="Переключать при исчерпании лимита"
-          hint="Агенты переходят на аккаунт с наибольшим остатком лимита."
+          label={t("accounts-surface.066")}
+          hint={t("accounts-surface.067")}
           value={settings.values.autoSwitch}
           disabled={settings.saving}
           onValueChange={(autoSwitch) => save({ autoSwitch })}
         />
         <SettingsSwitch
-          label="Продолжать после переключения"
-          hint="Отправляет сообщение для продолжения прерванной задачи."
+          label={t("accounts-surface.068")}
+          hint={t("accounts-surface.069")}
           value={settings.values.autoContinue}
           disabled={settings.saving || !settings.values.autoSwitch}
           onValueChange={(autoContinue) => save({ autoContinue })}
         />
         <SettingsSwitch
-          label="Распределять новых агентов по аккаунтам"
-          hint="Новый агент выбирает аккаунт с наибольшим остатком лимита."
+          label={t("accounts-surface.070")}
+          hint={t("accounts-surface.071")}
           value={settings.values.balanceNewAgents}
           disabled={settings.saving}
           onValueChange={(balanceNewAgents) => save({ balanceNewAgents })}
         />
         <SettingsSwitch
-          label="Переключать открытых агентов при смене аккаунта по умолчанию"
-          hint="Если выключено, открытые агенты сохраняют свой аккаунт. Новые и закрытые сессии используют новый аккаунт по умолчанию."
+          label={t("accounts-surface.072")}
+          hint={t("accounts-surface.073")}
           value={settings.values.moveAgentsOnDefaultChange}
           disabled={settings.saving}
           onValueChange={(moveAgentsOnDefaultChange) => save({ moveAgentsOnDefaultChange })}
         />
         <SettingsSwitch
-          label="Использовать запасные сбросы, когда лимиты исчерпаны везде"
-          hint="Автоматически тратит запасной сброс вместо остановки. По умолчанию выключено."
+          label={t("accounts-surface.074")}
+          hint={t("accounts-surface.075")}
           value={settings.values.autoRedeem}
           disabled={settings.saving || !settings.values.autoSwitch}
           onValueChange={(autoRedeem) => save({ autoRedeem })}
         />
         <SettingsSwitch
-          label="Продолжать у другого провайдера при исчерпании всех лимитов"
-          hint="Создаёт продолжение разговора в ChatGPT вместо Claude или наоборот. Права нового агента не расширяются; исходный чат сохраняется."
+          label={t("accounts-surface.076")}
+          hint={t("accounts-surface.077")}
           value={settings.values.forkOtherProvider}
           disabled={settings.saving || !settings.values.autoSwitch}
           onValueChange={(forkOtherProvider) => save({ forkOtherProvider })}
@@ -670,10 +668,10 @@ function AutomationSettings({ theme }: { theme: Theme }) {
 
 export function describeReopen(prefix: string, summary: ReopenSummary): string {
   const parts = [prefix];
-  if (summary.continuedIn) parts.push(`продолжение в «${summary.continuedIn.title}»`);
-  if (summary.reopened.length > 0) parts.push(`${summary.reopened.length} агентов переключено`);
-  if (summary.deferred.length > 0) parts.push(`${summary.deferred.length} переключатся после текущего ответа`);
-  if (summary.failed.length > 0) parts.push(`${summary.failed.length} переключатся при перезапуске`);
+  if (summary.continuedIn) parts.push(t("accounts-surface.078", { v0: summary.continuedIn.title }));
+  if (summary.reopened.length > 0) parts.push(t("accounts-surface.079", { v0: summary.reopened.length }));
+  if (summary.deferred.length > 0) parts.push(t("accounts-surface.080", { v0: summary.deferred.length }));
+  if (summary.failed.length > 0) parts.push(t("accounts-surface.081", { v0: summary.failed.length }));
   return parts.join(" · ");
 }
 
