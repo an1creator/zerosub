@@ -29,7 +29,7 @@ export function ProxyForm({ theme, draft, onChange, store, family, accountId }: 
   const text = useText(theme);
   const [showPassword, setShowPassword] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<{ ok: boolean; message: string; level?: "success" | "warning" | "error" } | null>(null);
   const change = (patch: Partial<ProxyDraft>) => { setResult(null); onChange({ ...draft, ...patch }); };
   const style = { color: theme.colors.foreground, backgroundColor: theme.colors.surface2, borderColor: theme.colors.border,
     borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 14, minWidth: 0 };
@@ -73,9 +73,9 @@ export function ProxyForm({ theme, draft, onChange, store, family, accountId }: 
         {draft.hasPassword ? <Button theme={theme} label="Убрать сохранённый пароль" onPress={() => change({ password: "", changedPassword: true, hasPassword: false })} /> : null}
         <Button theme={theme} label="Проверить подключение" busy={testing} onPress={() => void test()} />
       </View>
-      <Text style={text.small}>Проверка соединяется с сервисом без токена подписки. Пароль хранится только на этом хосте и не возвращается в интерфейс.</Text>
+      <Text style={text.small}>Проверка обращается к API через этот прокси без токена подписки. HTTP 401 — ожидаемый ответ. Пароль хранится только на этом хосте и не возвращается в интерфейс.</Text>
     </> : <Text style={text.small}>Используются настройки сети хоста, в том числе системный VPN или прокси.</Text>}
-    {result ? <Text style={result.ok ? text.body : text.danger}>{result.message}</Text> : null}
+    {result ? <Text style={result.ok ? text.body : result.level === "warning" ? text.warning : text.danger}>{result.message}</Text> : null}
     <Text style={text.small}>Прокси применяется к запросам агента, входу через CLI и проверке лимитов. Страница входа в браузере использует сеть браузера. Команды и MCP могут иметь собственные настройки сети.</Text>
   </View>;
 }

@@ -139,5 +139,5 @@ export const setAccountProxy = defineRpc({
 export const checkProxy = defineRpc({
   name: "zerosub.proxy.check",
   input: z.object({ family: FamilySchema, accountId: z.string().optional(), proxy: ProxyInputSchema }),
-  output: z.object({ ok: z.boolean(), message: z.string() }),
+  output: z.object({ ok: z.boolean(), message: z.string(), level: z.enum(["success", "warning", "error"]).optional() }),
 });

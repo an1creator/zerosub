@@ -6,7 +6,7 @@ import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { tunnel, createBridge, readProxy, saveProxy, proxyEnvironment, closeBridges, proxyUrl } from "./proxy";
+import { describeProxyCheck, tunnel, createBridge, readProxy, saveProxy, proxyEnvironment, closeBridges, proxyUrl } from "./proxy";
 import { proxyView, ProxyInputSchema, type ProxyConfig } from "../shared/proxy";
 
 const cleanups: Array<() => void | Promise<void>> = [];
@@ -126,4 +126,13 @@ it("two simultaneous CLI bridges keep their authenticated routes separate", asyn
     });
   }
   expect(await Promise.all([through(a),through(b)])).toEqual(["account-a","account-b"]);
+});
+
+it("accepts an unauthenticated API response but not a Cloudflare challenge", () => {
+  expect(describeProxyCheck(401, true)).toMatchObject({ok:true, level:"success"});
+  expect(describeProxyCheck(403, true, true)).toMatchObject({ok:false, level:"warning"});
+  expect(describeProxyCheck(403, true, true).message).toContain("Cloudflare");
+  expect(describeProxyCheck(407, false)).toMatchObject({ok:false, level:"error"});
+  expect(describeProxyCheck(401, false).ok).toBe(false);
+  expect(describeProxyCheck(502, true).ok).toBe(false);
 });

@@ -158,19 +158,35 @@ export async function accountFetch(family: Family, home: string | null, url: str
     request.end();
   });
 }
-export async function testProxy(config: ProxyConfig, family: Family): Promise<{ ok: boolean; message: string }> {
-  // Checks tunnel + verified target TLS, without subscription tokens or third-party IP services.
-  const host = family === "codex" ? "chatgpt.com" : "api.anthropic.com";
+export type ProxyCheckResult = { ok: boolean; message: string; level: "success" | "warning" | "error" };
+
+export function describeProxyCheck(status: number, secure: boolean, challenge = false): ProxyCheckResult {
+  if (!secure || status === 407) return { ok: false, level: "error", message: status === 407
+    ? "Прокси отклонил логин или пароль (HTTP 407)."
+    : "Защищённое соединение с API через прокси не установлено. Проверьте адрес, авторизацию и сертификат." };
+  if (status === 401) return { ok: true, level: "success",
+    message: "Прокси работает: API доступен и вернул ожидаемый HTTP 401 — запрос отправлен без токена подписки." };
+  if (status >= 200 && status < 300) return { ok: true, level: "success",
+    message: `Прокси работает: API ответил HTTP ${status}. Доступ аккаунта проверяется отдельно при обновлении лимитов.` };
+  if (status === 403) return { ok: false, level: "warning", message: challenge
+    ? "Прокси установил соединение, но Cloudflare требует браузерную проверку (HTTP 403). Доступ к API не подтверждён."
+    : "Прокси установил соединение, но API запретил запрос (HTTP 403). Доступ к API не подтверждён." };
+  return { ok: false, level: "warning", message: `Соединение через прокси установлено, но API ответил HTTP ${status}. Успешный доступ не подтверждён.` };
+}
+
+export async function testProxy(config: ProxyConfig, family: Family): Promise<ProxyCheckResult> {
+  // Probe the provider's authenticated usage API without sending account credentials.
+  // The website root has browser challenges and cannot serve as an API health check.
+  const url = family === "codex" ? "https://chatgpt.com/backend-api/wham/usage" : "https://api.anthropic.com/api/oauth/usage";
   return new Promise((resolve) => {
-    const request = https.request(`https://${host}/`, { method: "HEAD", agent: agentFor(config) }, (response) => {
+    const request = https.request(url, { method: "GET", headers: { Accept: "application/json" }, agent: agentFor(config) }, (response) => {
       response.resume();
       const socket = response.socket as import("node:tls").TLSSocket;
-      const ok = Boolean(socket.encrypted && socket.authorized);
-      resolve({ ok, message: ok ? `Соединение с ${host} через прокси установлено (HTTP ${response.statusCode}). Это проверка сети, не подписки.` : "Прокси не установил защищённое соединение с сервисом. Проверьте авторизацию и доступность." });
+      resolve(describeProxyCheck(response.statusCode ?? 0, Boolean(socket.encrypted && socket.authorized), response.headers["cf-mitigated"] === "challenge"));
     });
     const timer = setTimeout(() => request.destroy(), 15_000);
     request.on("close", () => clearTimeout(timer));
-    request.on("error", () => resolve({ ok: false, message: "Проверка не прошла: проверьте адрес, порт, логин, пароль и сертификат прокси." }));
+    request.on("error", () => resolve({ ok: false, level: "error", message: "Проверка не прошла: проверьте адрес, порт, логин, пароль и сертификат прокси." }));
     request.end();
   });
 }
