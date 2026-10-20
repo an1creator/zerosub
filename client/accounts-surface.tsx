@@ -75,7 +75,7 @@ export function AccountsSurface(props: PluginSurfaceProps & { store: ZeroSubStor
             ) : null}
           </View>
           <Text style={text.muted}>
-            Добавьте аккаунты Claude и ChatGPT. Каждый агент использует выбранный аккаунт, а при исчерпании лимита может продолжить работу на другом.
+            Аккаунты Claude и ChatGPT с переключением при исчерпании лимитов.
           </Text>
         </View>
 
@@ -252,7 +252,7 @@ function AccountCard({
   const faded = disabled ? { opacity: 0.55 } : null;
   const windows = account.usage?.windows ?? [];
   const agents = account.agentCount === 0 ? "Нет агентов" : `Агентов: ${account.agentCount}`;
-  const freshness = !signedOut && account.usage && windows.length > 0 ? `обновлено ${formatAge(account.usage.fetchedAt)}` : null;
+  const freshness = !signedOut && account.usage && windows.length > 0 ? formatAge(account.usage.fetchedAt) : null;
 
   // Sets the account aside for a while, or brings it back; its agents move off it and back.
   const toggle = useCallback(async () => {
@@ -388,7 +388,7 @@ function AccountCard({
         {account.isDefault ? <Badge theme={theme} label="По умолчанию" tone="accent" /> : null}
         {disabled ? <Badge theme={theme} label="Отключён" /> : null}
         {plan ? <Badge theme={theme} label={plan} /> : null}
-        {account.kind === "main" ? <Badge theme={theme} label="Основной вход CLI" /> : null}
+        {account.kind === "main" ? <Badge theme={theme} label="Вход CLI" /> : null}
         {account.status === "limited" ? <Badge theme={theme} label="Лимит исчерпан" tone="danger" /> : null}
         {account.status === "signed_out" ? <Badge theme={theme} label="Требуется вход" tone="warning" /> : null}
         {resets && !signedOut ? <Badge theme={theme} label={resetBadge(resets)} tone="accent" /> : null}
@@ -454,7 +454,7 @@ function AccountCard({
             size="small"
             tone={account.status === "limited" ? "primary" : "secondary"}
             icon="TimerReset"
-            label="Сбросить лимиты"
+            label="Сбросить"
             accessibilityLabel="Использовать запасной сброс"
             tooltip="Потратить запасной сброс для восстановления лимитов"
             tooltipAlign="end"

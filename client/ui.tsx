@@ -265,16 +265,16 @@ export function UsageBar({ theme, limit }: { theme: Theme; limit: UsageWindow })
   const reset = formatResetIn(limit.resetsAt);
   return (
     <View style={{ gap: 4 }}>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", columnGap: 8 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", columnGap: 8, rowGap: 2 }}>
         <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>{usageLabel(limit.label)}</Text>
-        <Text style={{ color: colors.foregroundMuted, fontSize: 12 }}>
-          <Text style={{ color: colors.foreground, fontWeight: "600" }}>{formatPercent(percent)}</Text> использовано
+        <Text style={{ color: colors.foregroundMuted, fontSize: 12, flexShrink: 1 }}>
+          <Text style={{ color: colors.foreground, fontWeight: "600" }}>{formatPercent(percent)}</Text>
           {reset ? ` · сброс ${reset}` : ""}
         </Text>
       </View>
       <View
         accessibilityRole="progressbar"
-        accessibilityLabel={`${usageLabel(limit.label)} usage`}
+        accessibilityLabel={`${usageLabel(limit.label)}: использовано`}
         accessibilityValue={{ min: 0, max: 100, now: Math.round(percent) }}
         style={{ height: 6, borderRadius: 3, backgroundColor: colors.surface2, overflow: "hidden" }}
       >

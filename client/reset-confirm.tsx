@@ -14,7 +14,7 @@ type Theme = PluginHostProps["theme"];
 function formatDay(iso: string | null): string | null {
   if (!iso) return null;
   const at = new Date(iso);
-  return Number.isNaN(at.getTime()) ? null : at.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return Number.isNaN(at.getTime()) ? null : at.toLocaleDateString("ru-RU", { month: "short", day: "numeric" });
 }
 
 function list(items: readonly string[]): string {
@@ -25,13 +25,13 @@ function list(items: readonly string[]): string {
 /** "2 left · use by Sep 30". */
 export function resetDetail(resets: ResetOffer): string {
   const until = formatDay(resets.expiresAt);
-  return `осталось: ${resets.available}${until ? ` · использовать до ${until}` : ""}`;
+  return `осталось: ${resets.available}${until ? ` · до ${until}` : ""}`;
 }
 
 /** "1 reset · use by Oct 23". */
 export function resetBadge(resets: ResetOffer): string {
   const until = formatDay(resets.expiresAt);
-  return `Сбросов: ${resets.available}${until ? ` · использовать до ${until}` : " в запасе"}`;
+  return `Сбросов: ${resets.available}${until ? ` · до ${until}` : " в запасе"}`;
 }
 
 /**
