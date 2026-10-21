@@ -1,11 +1,15 @@
 import { t, subscribeLanguage } from "../shared/i18n";
 import type {
   PluginButton,
+  PluginButtonMenuEntry,
   PluginButtonRegistration,
   PluginClientContext,
 } from "@getpaseo/plugin/client";
-import { shortLabel } from "../shared/format";
-import { type Family, type StateView } from "../shared/model";
+import { formatPercent, peakUsage, shortLabel } from "../shared/format";
+import { FAMILY_LABEL, type AccountView, type Family, type StateView } from "../shared/model";
+import { setAgentAccount } from "../shared/rpc";
+import { forkPopover } from "./fork-confirm";
+import { resetPopover } from "./reset-confirm";
 import type { ZeroSubStore } from "./store";
 
 /** The most agents Paseo returns per page. */
@@ -46,7 +50,7 @@ export function contributePills(client: PluginClientContext, store: ZeroSubStore
         pills.delete(agent.id);
         continue;
       }
-      const key = JSON.stringify([button.label, button.title, button.icon, []]);
+      const key = JSON.stringify([button.label, button.title, button.icon, menuKey(button)]);
       if (existing) {
         if (existing.key !== key) {
           existing.registration.update(button);
@@ -164,11 +168,88 @@ export function buttonFor(
     state.accounts.some((account) => account.family === other && account.status === "ready");
   if (accounts.length < 2 && !(current.status === "limited" && (offerReset || offerFork))) return null;
 
+  const choose = (accountId: string | null) => async () => {
+    await store.rpc(setAgentAccount, { agentId: agent.id, accountId });
+  };
+
+  // Codex threads can't change ChatGPT accounts in place; picking one continues in a new agent.
+  const movable = route?.movable ?? true;
+  const items: PluginButtonMenuEntry[] = accounts.map((account, index) => ({
+    kind: "item",
+    id: `account-${index}`,
+    title: account.id === current.id || movable ? menuTitle(account) : t("pills.001", { v0: account.label }),
+    icon: account.id === current.id ? "CircleCheck" : movable ? "Circle" : "CopyPlus",
+    disabled: account.status === "signed_out" || account.status === "disabled" || account.id === current.id,
+    behavior: { kind: "action", onPress: choose(account.id) },
+  }));
+  // When the agent is stuck on a limit, a way out is the most useful thing in the menu.
+  const wayOut: PluginButtonMenuEntry[] = [];
+  if (offerReset && resets) {
+    const entry: PluginButtonMenuEntry = {
+      kind: "item",
+      id: "use-reset",
+      title: t("pills.002", { v0: current.label, v1: resets.available }),
+      icon: "TimerReset",
+      behavior: { kind: "popover", Content: resetPopover(store, current, agent.id) },
+    };
+    if (current.status === "limited") wayOut.push(entry);
+    else items.push(entry);
+  }
+  if (offerFork) {
+    wayOut.push({
+      kind: "item",
+      id: "fork-other",
+      title: t("pills.003", { v0: FAMILY_LABEL[other] }),
+      icon: "GitFork",
+      behavior: { kind: "popover", Content: forkPopover(store, agent.id, family, other) },
+    });
+  }
+  if (wayOut.length > 0) items.unshift(...wayOut, { kind: "separator", id: "way-out-divider" });
+  items.push({ kind: "separator", id: "manage-divider" });
+  if (route?.pinned && movable) {
+    const fallback = accounts.find((account) => account.isDefault);
+    items.push({
+      kind: "item",
+      id: "follow-default",
+      title: fallback ? t("pills.004", { v0: fallback.label }) : t("pills.005"),
+      icon: "Undo2",
+      behavior: { kind: "action", onPress: choose(null) },
+    });
+  }
+  items.push({
+    kind: "item",
+    id: "manage",
+    title: t("pills.006"),
+    icon: "Users",
+    behavior: {
+      kind: "action",
+      onPress() {
+        client.openSurface("accounts");
+      },
+    },
+  });
+
   const pending = route?.pendingAccountId ? t("pills.007") : "";
   return {
     title: t("pills.008", { v0: current.label, v1: current.email && current.email !== current.label ? ` (${current.email})` : "" }),
     icon: current.status === "limited" ? "CircleAlert" : "CircleUserRound",
     label: `${shortLabel(current)}${pending}`,
-    behavior: { kind: "action", onPress: () => client.openScreen({ screenId: "account-picker", params: { agentId: agent.id, workspaceId: agent.workspaceId } }) },
+    behavior: { kind: "menu", items },
   };
+}
+
+function menuTitle(account: AccountView): string {
+  if (account.status === "signed_out") return t("pills.009", { v0: account.label });
+  if (account.status === "disabled") return t("pills.010", { v0: account.label });
+  if (account.status === "limited") return t("pills.011", { v0: account.label });
+  const peak = account.usage ? peakUsage(account.usage.windows) : null;
+  return peak ? t("pills.012", { v0: account.label, v1: formatPercent(peak.usedPercent) }) : account.label;
+}
+
+function menuKey(button: PluginButton): string {
+  return button.behavior.kind === "menu"
+    ? button.behavior.items
+        .map((item) => (item.kind === "item" ? `${item.id}:${item.title}:${String(item.icon)}:${item.disabled}` : item.id))
+        .join("|")
+    : "";
 }

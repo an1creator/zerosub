@@ -21,3 +21,13 @@ The script validates both source signatures, saves private backups under `~/.loc
 **Restart Paseo after the current chat finishes.** An app update may overwrite the patch; reapply it if the issue returns. To restore, copy the backed-up `codex-usage.ts` and `cursor-usage.ts` to the respective `server/usage.ts` files and restart Paseo. The unused transport helper can then be removed.
 
 This patch preserves the built-in account identity, quota windows, balances, and report format. Proxy failures do not fall back to a direct connection.
+
+## Duplicate account menu
+
+Some Paseo 0.12 desktop layouts retain multiple renderers for the same chat button. Their shared open state can display two copies of the account menu. The account manager uses the original dropdown; this local patch limits opening to the clicked renderer:
+
+```sh
+node scripts/install-paseo-menu-fix.mjs
+```
+
+The installer checks the supported bundle signature and JavaScript syntax, backs up the bundle under `~/.local/share/zerosub-backups/paseo-menu-*`, and installs it using `sudo`. Restart Paseo to load it. App updates may overwrite this patch. To undo it, restore the original backed-up `index-*.js` to `/opt/Paseo/resources/app-dist/_expo/static/js/web/` and restart Paseo.
